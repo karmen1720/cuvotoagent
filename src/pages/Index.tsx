@@ -4,7 +4,7 @@ import { ArrowLeft, CloudLightning, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import HeroSection from "@/components/HeroSection";
-import CompanyProfile, { CompanyData } from "@/components/CompanyProfile";
+import CompanyProfile, { CompanyData, DEFAULT_COMPANY } from "@/components/CompanyProfile";
 import TenderUploader from "@/components/TenderUploader";
 import RequirementsDisplay, { TenderRequirements } from "@/components/RequirementsDisplay";
 import EligibilityChecker from "@/components/EligibilityChecker";
