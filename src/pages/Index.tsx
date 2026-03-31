@@ -264,8 +264,20 @@ const Index = () => {
                 </div>
 
                 {/* Right column */}
-                <div className="space-y-6">
-                  <CompanyProfile company={company} onEdit={setCompany} />
+                <div className="space-y-6" ref={profileRef}>
+                  <CompanyProfile company={company} onEdit={(c) => { setCompany(c); setShowProfileEdit(false); }} />
+
+                  {requirements && !proposalReady && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                      <MissingInfoCheck
+                        company={company}
+                        onEditProfile={() => {
+                          profileRef.current?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        onProceedAnyway={() => setShowMissingCheck(false)}
+                      />
+                    </motion.div>
+                  )}
 
                   {requirements && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
