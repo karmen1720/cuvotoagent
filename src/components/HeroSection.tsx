@@ -11,10 +11,8 @@ const HeroSection = ({ onGetStarted }: HeroSectionProps) => {
   return (
     <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
       {/* Background */}
-      <div
-        className="absolute inset-0"
-        style={{ background: "var(--gradient-hero)" }}
-      />
+      <img src={heroBg} alt="" className="absolute inset-0 w-full h-full object-cover" width={1920} height={1080} />
+      <div className="absolute inset-0 bg-primary/60" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(174_62%_47%/0.12),transparent_60%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,hsl(220_60%_30%/0.2),transparent_60%)]" />
 
