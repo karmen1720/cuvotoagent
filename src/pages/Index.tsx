@@ -13,12 +13,6 @@ import StepIndicator from "@/components/StepIndicator";
 import ProposalPreview from "@/components/ProposalPreview";
 import { analyzeTender, generateProposal, extractTextFromPdf, parseCsvToTenders } from "@/lib/tender-api";
 
-const DEFAULT_COMPANY: CompanyData = {
-  company_name: "Tuno Tech",
-  msme: true,
-  startup: true,
-};
-
 const Index = () => {
   const { toast } = useToast();
   const [showDashboard, setShowDashboard] = useState(false);
