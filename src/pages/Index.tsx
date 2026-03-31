@@ -4,20 +4,15 @@ import { ArrowLeft, CloudLightning, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import HeroSection from "@/components/HeroSection";
-import CompanyProfile, { CompanyData } from "@/components/CompanyProfile";
+import CompanyProfile, { CompanyData, DEFAULT_COMPANY } from "@/components/CompanyProfile";
 import TenderUploader from "@/components/TenderUploader";
 import RequirementsDisplay, { TenderRequirements } from "@/components/RequirementsDisplay";
 import EligibilityChecker from "@/components/EligibilityChecker";
 import ProposalGenerator from "@/components/ProposalGenerator";
 import StepIndicator from "@/components/StepIndicator";
 import ProposalPreview from "@/components/ProposalPreview";
+import MissingInfoCheck from "@/components/MissingInfoCheck";
 import { analyzeTender, generateProposal, extractTextFromPdf, parseCsvToTenders } from "@/lib/tender-api";
-
-const DEFAULT_COMPANY: CompanyData = {
-  company_name: "Tuno Tech",
-  msme: true,
-  startup: true,
-};
 
 const Index = () => {
   const { toast } = useToast();
@@ -33,7 +28,10 @@ const Index = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [proposalText, setProposalText] = useState("");
   const [proposalReady, setProposalReady] = useState(false);
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [showMissingCheck, setShowMissingCheck] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   const currentStep = !pdfFile ? 0 : !requirements ? 1 : !proposalReady ? 2 : 3;
 
@@ -266,8 +264,20 @@ const Index = () => {
                 </div>
 
                 {/* Right column */}
-                <div className="space-y-6">
-                  <CompanyProfile company={company} onEdit={setCompany} />
+                <div className="space-y-6" ref={profileRef}>
+                  <CompanyProfile company={company} onEdit={(c) => { setCompany(c); setShowProfileEdit(false); }} />
+
+                  {requirements && !proposalReady && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                      <MissingInfoCheck
+                        company={company}
+                        onEditProfile={() => {
+                          profileRef.current?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        onProceedAnyway={() => setShowMissingCheck(false)}
+                      />
+                    </motion.div>
+                  )}
 
                   {requirements && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
