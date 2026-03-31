@@ -11,6 +11,7 @@ import EligibilityChecker from "@/components/EligibilityChecker";
 import ProposalGenerator from "@/components/ProposalGenerator";
 import StepIndicator from "@/components/StepIndicator";
 import ProposalPreview from "@/components/ProposalPreview";
+import MissingInfoCheck from "@/components/MissingInfoCheck";
 import { analyzeTender, generateProposal, extractTextFromPdf, parseCsvToTenders } from "@/lib/tender-api";
 
 const Index = () => {
