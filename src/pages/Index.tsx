@@ -28,7 +28,10 @@ const Index = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [proposalText, setProposalText] = useState("");
   const [proposalReady, setProposalReady] = useState(false);
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [showMissingCheck, setShowMissingCheck] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   const currentStep = !pdfFile ? 0 : !requirements ? 1 : !proposalReady ? 2 : 3;
 
