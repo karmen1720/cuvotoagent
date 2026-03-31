@@ -25,6 +25,38 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Build comprehensive company details section
+    const companyDetails = companyProfile ? `
+COMPANY DETAILS:
+- Company Name: ${companyProfile.company_name || "Not provided"}
+- Contact Person: ${companyProfile.contact_person || "Not provided"}
+- Email: ${companyProfile.contact_email || "Not provided"}
+- Phone: ${companyProfile.contact_phone || "Not provided"}
+- Registered Address: ${companyProfile.address || "Not provided"}
+
+REGISTRATION & TAX DETAILS:
+- PAN: ${companyProfile.pan || "Not provided"}
+- TAN: ${companyProfile.tan || "Not provided"}
+- GST Number: ${companyProfile.gst || "Not provided"}
+- CIN: ${companyProfile.cin || "Not provided"}
+- MSME/Udyam Number: ${companyProfile.udyam_number || "Not provided"}
+- DPIIT Recognition Number: ${companyProfile.dpiit_number || "Not provided"}
+- MSME Registered: ${companyProfile.msme ? "Yes" : "No"}
+- DPIIT Recognized Startup: ${companyProfile.startup ? "Yes" : "No"}
+
+EXPERIENCE & CAPACITY:
+- Years of Experience: ${companyProfile.years_experience || "Not provided"}
+- Annual Turnover: ${companyProfile.annual_turnover || "Not provided"}
+- Number of Employees: ${companyProfile.employees_count || "Not provided"}
+- Certifications: ${companyProfile.certifications?.length > 0 ? companyProfile.certifications.join(", ") : "None listed"}
+- Past Projects: ${companyProfile.past_projects?.length > 0 ? companyProfile.past_projects.join("; ") : "None listed"}
+
+BANKING DETAILS:
+- Bank: ${companyProfile.bank_name || "Not provided"}
+- Account: ${companyProfile.bank_account || "Not provided"}
+- IFSC: ${companyProfile.ifsc_code || "Not provided"}
+` : "Company details not provided";
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -32,36 +64,91 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        model: "google/gemini-2.5-pro",
         messages: [
           {
             role: "system",
-            content: `You are a professional tender proposal writer. Generate comprehensive, well-structured tender proposals that are professional, detailed, and persuasive. Write in formal business language. Format the proposal with clear sections using markdown headings.`
+            content: `You are an elite government & corporate tender proposal writer with 20+ years of experience winning competitive bids. You write proposals that are:
+- Professionally formatted with proper business language
+- Compliant with all tender requirements
+- Persuasive and highlighting competitive advantages
+- Detailed with specific facts, figures, and credentials
+- Properly structured following standard tender response formats
+
+You MUST include all company registration details (PAN, TAN, GST, MSME, DPIIT numbers) wherever relevant in the proposal. If certain details are marked "Not provided", mention them as "To be furnished upon request" instead of leaving gaps.
+
+Format the proposal in clean markdown with proper headings, tables where appropriate, and professional language suitable for government/corporate submission.`
           },
           {
             role: "user",
-            content: `Generate a professional tender proposal for:
+            content: `Generate a comprehensive, submission-ready tender proposal.
 
-Tender: ${tenderTitle}
+TENDER TITLE: ${tenderTitle}
 
-Company: ${JSON.stringify(companyProfile)}
+${companyDetails}
 
-Requirements Extracted: ${JSON.stringify(requirements)}
+TENDER REQUIREMENTS EXTRACTED:
+${JSON.stringify(requirements, null, 2)}
 
-Eligibility Assessment: ${JSON.stringify(eligibility)}
+ELIGIBILITY ASSESSMENT:
+${JSON.stringify(eligibility, null, 2)}
 
-Create a complete proposal with these sections:
-1. Cover Letter
-2. Executive Summary
-3. Company Profile & Qualifications
-4. Technical Approach & Methodology
-5. Compliance Matrix (addressing each requirement)
-6. Value Proposition (highlighting MSME/Startup benefits if applicable)
-7. Timeline & Deliverables
-8. Conclusion
+Generate a COMPLETE proposal with these sections:
 
-Make it professional, detailed, and persuasive.`
+1. **COVER LETTER** - Formal letter addressed to the tendering authority, expressing interest and summarizing qualifications. Include company PAN, GST, and registration numbers.
+
+2. **EXECUTIVE SUMMARY** - Overview of the proposal, key strengths, and why this company should be selected.
+
+3. **COMPANY PROFILE & CREDENTIALS**
+   - About the company, history, vision
+   - Registration details (PAN, TAN, GST, CIN, MSME/Udyam, DPIIT)
+   - Key personnel and organizational structure
+   - Infrastructure and capabilities
+
+4. **TECHNICAL APPROACH & METHODOLOGY**
+   - Understanding of the tender scope
+   - Proposed approach and methodology
+   - Technology stack and tools (if applicable)
+   - Quality assurance measures
+
+5. **COMPLIANCE MATRIX** - Table format showing each requirement and how the company complies.
+
+6. **PAST EXPERIENCE & REFERENCES**
+   - Relevant past projects
+   - Client testimonials approach
+   - Similar work undertaken
+
+7. **ELIGIBILITY & SPECIAL BENEFITS**
+   - MSME benefits and exemptions applicable
+   - Startup benefits and relaxations
+   - EMD exemptions if applicable
+   - Any price preferences
+
+8. **FINANCIAL PROPOSAL FRAMEWORK**
+   - Pricing approach (placeholder for actual figures)
+   - Cost breakdown structure
+   - Payment terms
+
+9. **TIMELINE & DELIVERABLES**
+   - Project timeline with milestones
+   - Key deliverables
+   - Resource allocation plan
+
+10. **ANNEXURES CHECKLIST**
+    - List all documents to be attached
+    - Status of each document (Available/To be furnished)
+
+11. **DECLARATION & UNDERTAKING**
+    - Standard declaration of authenticity
+    - No blacklisting declaration
+    - Conflict of interest declaration
+
+Make it professional, comprehensive, and ready for submission. Use tables for compliance matrix and checklists.`
           }
         ],
+        reasoning: {
+          effort: "high"
+        }
       }),
     });
 
