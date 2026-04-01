@@ -14,7 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      company_profiles: {
+        Row: {
+          address: string | null
+          annual_turnover: string | null
+          bank_account: string | null
+          bank_name: string | null
+          certifications: string[] | null
+          cin: string | null
+          company_name: string
+          contact_email: string | null
+          contact_person: string | null
+          contact_phone: string | null
+          created_at: string
+          dpiit_number: string | null
+          employees_count: string | null
+          gst: string | null
+          id: string
+          ifsc_code: string | null
+          msme: boolean
+          pan: string | null
+          past_projects: string[] | null
+          startup: boolean
+          tan: string | null
+          udyam_number: string | null
+          updated_at: string
+          user_id: string | null
+          years_experience: string | null
+        }
+        Insert: {
+          address?: string | null
+          annual_turnover?: string | null
+          bank_account?: string | null
+          bank_name?: string | null
+          certifications?: string[] | null
+          cin?: string | null
+          company_name?: string
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          dpiit_number?: string | null
+          employees_count?: string | null
+          gst?: string | null
+          id?: string
+          ifsc_code?: string | null
+          msme?: boolean
+          pan?: string | null
+          past_projects?: string[] | null
+          startup?: boolean
+          tan?: string | null
+          udyam_number?: string | null
+          updated_at?: string
+          user_id?: string | null
+          years_experience?: string | null
+        }
+        Update: {
+          address?: string | null
+          annual_turnover?: string | null
+          bank_account?: string | null
+          bank_name?: string | null
+          certifications?: string[] | null
+          cin?: string | null
+          company_name?: string
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          dpiit_number?: string | null
+          employees_count?: string | null
+          gst?: string | null
+          id?: string
+          ifsc_code?: string | null
+          msme?: boolean
+          pan?: string | null
+          past_projects?: string[] | null
+          startup?: boolean
+          tan?: string | null
+          udyam_number?: string | null
+          updated_at?: string
+          user_id?: string | null
+          years_experience?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
