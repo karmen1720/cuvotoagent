@@ -25,7 +25,6 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build comprehensive company details section
     const companyDetails = companyProfile ? `
 COMPANY DETAILS:
 - Company Name: ${companyProfile.company_name || "Not provided"}
@@ -68,20 +67,37 @@ BANKING DETAILS:
         messages: [
           {
             role: "system",
-            content: `You are an elite government & corporate tender proposal writer with 20+ years of experience winning competitive bids. You write proposals that are:
-- Professionally formatted with proper business language
-- Compliant with all tender requirements
-- Persuasive and highlighting competitive advantages
-- Detailed with specific facts, figures, and credentials
-- Properly structured following standard tender response formats
+            content: `You are India's top government tender proposal writer with 25+ years experience winning GeM, CPPP, state government, and PSU tenders. You have deep expertise in:
 
-You MUST include all company registration details (PAN, TAN, GST, MSME, DPIIT numbers) wherever relevant in the proposal. If certain details are marked "Not provided", mention them as "To be furnished upon request" instead of leaving gaps.
+- GFR (General Financial Rules) 2017 compliance
+- CVC (Central Vigilance Commission) guidelines
+- Make in India / Atmanirbhar Bharat procurement policies
+- MSME Purchase Preference Policy (PPP-MII Order)
+- Startup India procurement benefits
+- GeM bid response best practices
+- CPPP two-envelope bidding systems
 
-Format the proposal in clean markdown with proper headings, tables where appropriate, and professional language suitable for government/corporate submission.`
+Your proposals are:
+- Fully compliant with Indian government tender response formats
+- Written in formal Indian business English
+- Include all statutory declarations and undertakings as per GFR
+- Reference specific government circulars and policies
+- Include properly formatted compliance matrices
+- Have correct Indian date formats (DD/MM/YYYY)
+- Quote amounts in INR with words (e.g., "Rs. 50,00,000/- (Rupees Fifty Lakhs Only)")
+- Include proper stamp duty and notarization references
+
+CRITICAL RULES:
+1. Include ALL company registration details (PAN, TAN, GST, MSME, DPIIT) with proper formatting
+2. If details are "Not provided", write "To be furnished upon request / enclosed separately"
+3. Format the proposal in clean markdown with tables for compliance matrix
+4. Use Indian Standard numbering and referencing
+5. Include Technical Proposal AND Financial Proposal sections separately
+6. Add proper annexure references throughout`
           },
           {
             role: "user",
-            content: `Generate a comprehensive, submission-ready tender proposal.
+            content: `Generate a COMPLETE, submission-ready tender proposal as per Indian government standards.
 
 TENDER TITLE: ${tenderTitle}
 
@@ -93,76 +109,110 @@ ${JSON.stringify(requirements, null, 2)}
 ELIGIBILITY ASSESSMENT:
 ${JSON.stringify(eligibility, null, 2)}
 
-Generate a COMPLETE proposal with these sections:
+Generate a COMPREHENSIVE proposal with these sections following Indian tender format:
 
-1. **COVER LETTER** - Formal letter addressed to the tendering authority, expressing interest and summarizing qualifications. Include company PAN, GST, and registration numbers.
+## PART A: TECHNICAL PROPOSAL (ENVELOPE-1)
 
-2. **EXECUTIVE SUMMARY** - Overview of the proposal, key strengths, and why this company should be selected.
+1. **COVERING LETTER / BID SUBMISSION LETTER**
+   - On company letterhead format
+   - Addressed to the tendering authority
+   - Reference tender number, date, and title
+   - Declaration of acceptance of all terms
+   - Authorized signatory details with designation
+   - Company seal reference
+
+2. **EXECUTIVE SUMMARY**
+   - Brief overview of understanding
+   - Key differentiators and value proposition
+   - Summary of relevant experience
 
 3. **COMPANY PROFILE & CREDENTIALS**
-   - About the company, history, vision
-   - Registration details (PAN, TAN, GST, CIN, MSME/Udyam, DPIIT)
-   - Key personnel and organizational structure
-   - Infrastructure and capabilities
+   - Company overview, year of incorporation, nature of business
+   - Registration details table (PAN, TAN, GST, CIN, MSME/Udyam, DPIIT)
+   - Organizational structure and key management team
+   - Infrastructure details
+   - Quality certifications with validity
 
-4. **TECHNICAL APPROACH & METHODOLOGY**
-   - Understanding of the tender scope
-   - Proposed approach and methodology
-   - Technology stack and tools (if applicable)
-   - Quality assurance measures
+4. **PRE-QUALIFICATION / ELIGIBILITY COMPLIANCE**
+   - Compliance table: Requirement | Status | Document Reference
+   - Each eligibility criterion mapped to evidence
 
-5. **COMPLIANCE MATRIX** - Table format showing each requirement and how the company complies.
+5. **TECHNICAL APPROACH & METHODOLOGY**
+   - Understanding of the scope of work
+   - Proposed methodology (step-by-step)
+   - Technology/tools to be deployed
+   - Quality assurance framework
+   - Risk mitigation plan
 
-6. **PAST EXPERIENCE & REFERENCES**
-   - Relevant past projects
-   - Client testimonials approach
-   - Similar work undertaken
+6. **RESOURCE DEPLOYMENT PLAN**
+   - Team structure with CVs of key personnel
+   - Roles and responsibilities matrix
+   - Equipment/infrastructure deployment
 
-7. **ELIGIBILITY & SPECIAL BENEFITS**
-   - MSME benefits and exemptions applicable
-   - Startup benefits and relaxations
-   - EMD exemptions if applicable
-   - Any price preferences
+7. **PAST EXPERIENCE & TRACK RECORD**
+   - Relevant project table: Client | Project | Value | Duration | Status
+   - Performance certificates reference
+   - Similar work orders completed
 
-8. **FINANCIAL PROPOSAL FRAMEWORK**
-   - Pricing approach (placeholder for actual figures)
-   - Cost breakdown structure
-   - Payment terms
+8. **PROJECT IMPLEMENTATION PLAN**
+   - Gantt chart description with milestones
+   - Deliverable schedule
+   - Reporting mechanism
 
-9. **TIMELINE & DELIVERABLES**
-   - Project timeline with milestones
-   - Key deliverables
-   - Resource allocation plan
+9. **MSME / STARTUP BENEFITS CLAIMED**
+   - EMD exemption (if applicable with Udyam reference)
+   - Purchase preference under PPP-MII
+   - Prior experience/turnover relaxation for startups
+   - Applicable government circulars referenced
 
-10. **ANNEXURES CHECKLIST**
-    - List all documents to be attached
-    - Status of each document (Available/To be furnished)
+## PART B: FINANCIAL PROPOSAL (ENVELOPE-2)
 
-11. **DECLARATION & UNDERTAKING**
-    - Standard declaration of authenticity
-    - No blacklisting declaration
-    - Conflict of interest declaration
+10. **FINANCIAL BID / BOQ (Bill of Quantities)**
+    - Pricing table format: S.No | Item | Unit | Qty | Rate | Amount
+    - All amounts in INR with GST breakup
+    - Total in words and figures
+    - Price validity statement
 
-Make it professional, comprehensive, and ready for submission. Use tables for compliance matrix and checklists.`
+11. **COMMERCIAL TERMS**
+    - Payment schedule and milestones
+    - EMD details and bank guarantee format
+    - Performance Bank Guarantee commitment
+    - Insurance and indemnity provisions
+    - Warranty/AMC terms offered
+
+## PART C: ANNEXURES & DECLARATIONS
+
+12. **STATUTORY DECLARATIONS**
+    - Self-declaration of non-blacklisting / non-debarment
+    - No conflict of interest declaration
+    - Authenticity of information declaration
+    - Declaration on judicial/arbitration proceedings
+    - Acceptance of tender terms and conditions
+
+13. **DOCUMENTS CHECKLIST**
+    - Table: S.No | Document | Page No. | Status (Enclosed/To be furnished)
+    - All required documents mapped
+
+14. **POWER OF ATTORNEY / AUTHORIZATION**
+    - Authorized signatory details
+    - Board resolution reference
+
+Make it PROFESSIONAL, COMPREHENSIVE, and READY FOR SUBMISSION with proper Indian government tender formatting. Use tables extensively for compliance matrices and BOQ.`
           }
         ],
-        reasoning: {
-          effort: "high"
-        }
+        reasoning: { effort: "xhigh" }
       }),
     });
 
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds in Settings > Workspace > Usage." }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       const errText = await response.text();

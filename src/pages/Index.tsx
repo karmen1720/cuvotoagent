@@ -149,7 +149,7 @@ const Index = () => {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CloudLightning className="w-6 h-6 text-accent" />
-            <span className="font-display font-bold text-foreground text-lg">Tuno Tender AI</span>
+            <span className="font-display font-bold text-foreground text-lg">Cuvoto Tender AI</span>
           </div>
           <div className="flex items-center gap-2">
             {showDashboard && requirements && (

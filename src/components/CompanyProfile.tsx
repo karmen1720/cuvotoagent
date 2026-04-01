@@ -33,7 +33,7 @@ export interface CompanyData {
 }
 
 export const DEFAULT_COMPANY: CompanyData = {
-  company_name: "Tuno Tech",
+  company_name: "",
   msme: true,
   startup: true,
   pan: "",
