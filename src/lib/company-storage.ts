@@ -13,9 +13,6 @@ function getDeviceId(): string {
 }
 
 export async function saveCompanyProfile(company: CompanyData): Promise<void> {
-  const deviceId = getDeviceId();
-
-  // Check if profile exists for this device
   const { data: existing } = await supabase
     .from("company_profiles")
     .select("id")
@@ -44,6 +41,20 @@ export async function saveCompanyProfile(company: CompanyData): Promise<void> {
     bank_name: company.bank_name,
     bank_account: company.bank_account,
     ifsc_code: company.ifsc_code,
+    authorized_signatory_name: company.authorized_signatory_name,
+    authorized_signatory_designation: company.authorized_signatory_designation,
+    office_city: company.office_city,
+    local_content_percentage: company.local_content_percentage,
+    escalation_l1_name: company.escalation_l1_name,
+    escalation_l1_email: company.escalation_l1_email,
+    escalation_l2_name: company.escalation_l2_name,
+    escalation_l2_email: company.escalation_l2_email,
+    escalation_l3_name: company.escalation_l3_name,
+    escalation_l3_email: company.escalation_l3_email,
+    support_phone: company.support_phone,
+    support_email: company.support_email,
+    nature_of_business: company.nature_of_business,
+    year_of_incorporation: company.year_of_incorporation,
     updated_at: new Date().toISOString(),
   };
 
@@ -63,7 +74,7 @@ export async function loadCompanyProfile(): Promise<CompanyData | null> {
 
   if (!data || data.length === 0) return null;
 
-  const row = data[0];
+  const row = data[0] as any;
   return {
     company_name: row.company_name || "",
     msme: row.msme ?? false,
@@ -86,5 +97,19 @@ export async function loadCompanyProfile(): Promise<CompanyData | null> {
     bank_name: row.bank_name || "",
     bank_account: row.bank_account || "",
     ifsc_code: row.ifsc_code || "",
+    authorized_signatory_name: row.authorized_signatory_name || "",
+    authorized_signatory_designation: row.authorized_signatory_designation || "",
+    office_city: row.office_city || "",
+    local_content_percentage: row.local_content_percentage || "100",
+    escalation_l1_name: row.escalation_l1_name || "",
+    escalation_l1_email: row.escalation_l1_email || "",
+    escalation_l2_name: row.escalation_l2_name || "",
+    escalation_l2_email: row.escalation_l2_email || "",
+    escalation_l3_name: row.escalation_l3_name || "",
+    escalation_l3_email: row.escalation_l3_email || "",
+    support_phone: row.support_phone || "",
+    support_email: row.support_email || "",
+    nature_of_business: row.nature_of_business || "",
+    year_of_incorporation: row.year_of_incorporation || "",
   };
 }
