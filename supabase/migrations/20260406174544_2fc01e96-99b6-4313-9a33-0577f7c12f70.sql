@@ -1,0 +1,15 @@
+ALTER TABLE public.company_profiles
+  ADD COLUMN IF NOT EXISTS authorized_signatory_name text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS authorized_signatory_designation text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS office_city text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS local_content_percentage text DEFAULT '100',
+  ADD COLUMN IF NOT EXISTS escalation_l1_name text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS escalation_l1_email text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS escalation_l2_name text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS escalation_l2_email text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS escalation_l3_name text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS escalation_l3_email text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS support_phone text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS support_email text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS nature_of_business text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS year_of_incorporation text DEFAULT '';
