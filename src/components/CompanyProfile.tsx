@@ -30,6 +30,20 @@ export interface CompanyData {
   bank_name: string;
   bank_account: string;
   ifsc_code: string;
+  authorized_signatory_name: string;
+  authorized_signatory_designation: string;
+  office_city: string;
+  local_content_percentage: string;
+  escalation_l1_name: string;
+  escalation_l1_email: string;
+  escalation_l2_name: string;
+  escalation_l2_email: string;
+  escalation_l3_name: string;
+  escalation_l3_email: string;
+  support_phone: string;
+  support_email: string;
+  nature_of_business: string;
+  year_of_incorporation: string;
 }
 
 export const DEFAULT_COMPANY: CompanyData = {
@@ -54,6 +68,20 @@ export const DEFAULT_COMPANY: CompanyData = {
   bank_name: "",
   bank_account: "",
   ifsc_code: "",
+  authorized_signatory_name: "",
+  authorized_signatory_designation: "",
+  office_city: "",
+  local_content_percentage: "100",
+  escalation_l1_name: "",
+  escalation_l1_email: "",
+  escalation_l2_name: "",
+  escalation_l2_email: "",
+  escalation_l3_name: "",
+  escalation_l3_email: "",
+  support_phone: "",
+  support_email: "",
+  nature_of_business: "",
+  year_of_incorporation: "",
 };
 
 interface CompanyProfileProps {
@@ -66,10 +94,20 @@ const fieldGroups = [
     title: "Basic Information",
     fields: [
       { key: "company_name", label: "Company Name", required: true },
+      { key: "nature_of_business", label: "Nature of Business", placeholder: "e.g. IT Services, Software Development" },
+      { key: "year_of_incorporation", label: "Year of Incorporation", placeholder: "e.g. 2020" },
+      { key: "address", label: "Registered Address", multiline: true },
+      { key: "office_city", label: "Office City / Region", placeholder: "e.g. Delhi-NCR" },
+    ],
+  },
+  {
+    title: "Authorized Signatory",
+    fields: [
+      { key: "authorized_signatory_name", label: "Signatory Name", required: true, placeholder: "Full name of authorized person" },
+      { key: "authorized_signatory_designation", label: "Designation", placeholder: "e.g. Director, CEO" },
       { key: "contact_person", label: "Contact Person" },
       { key: "contact_email", label: "Email" },
       { key: "contact_phone", label: "Phone" },
-      { key: "address", label: "Registered Address", multiline: true },
     ],
   },
   {
@@ -89,6 +127,25 @@ const fieldGroups = [
       { key: "years_experience", label: "Years of Experience", placeholder: "e.g. 5 years" },
       { key: "annual_turnover", label: "Annual Turnover", placeholder: "e.g. ₹2 Crore" },
       { key: "employees_count", label: "Number of Employees", placeholder: "e.g. 50" },
+      { key: "local_content_percentage", label: "Make in India Local Content %", placeholder: "100" },
+    ],
+  },
+  {
+    title: "Escalation Matrix",
+    fields: [
+      { key: "escalation_l1_name", label: "Level 1 - Name & Role", placeholder: "e.g. Ajay Kumar - Project Expert" },
+      { key: "escalation_l1_email", label: "Level 1 - Email" },
+      { key: "escalation_l2_name", label: "Level 2 - Name & Role", placeholder: "e.g. Ravi Singh - Administrator" },
+      { key: "escalation_l2_email", label: "Level 2 - Email" },
+      { key: "escalation_l3_name", label: "Level 3 - Name & Role", placeholder: "e.g. Director Name - Director" },
+      { key: "escalation_l3_email", label: "Level 3 - Email" },
+    ],
+  },
+  {
+    title: "Support Centre",
+    fields: [
+      { key: "support_phone", label: "Support Phone", placeholder: "+91-XXXXXXXXXX" },
+      { key: "support_email", label: "Support Email", placeholder: "support@company.com" },
     ],
   },
   {
@@ -142,6 +199,7 @@ const CompanyProfile = ({ company, onEdit }: CompanyProfileProps) => {
     company.pan, company.tan, company.gst, company.cin,
     company.annual_turnover, company.years_experience,
     company.contact_person, company.address,
+    company.authorized_signatory_name, company.escalation_l1_name,
   ].filter(Boolean).length;
 
   if (editing) {
@@ -253,8 +311,8 @@ const CompanyProfile = ({ company, onEdit }: CompanyProfileProps) => {
             <Building2 className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h3 className="font-display font-semibold text-foreground">{company.company_name}</h3>
-            <p className="text-xs text-muted-foreground">{filledFields}/8 details filled</p>
+            <h3 className="font-display font-semibold text-foreground">{company.company_name || "Your Company"}</h3>
+            <p className="text-xs text-muted-foreground">{filledFields}/10 details filled</p>
           </div>
         </div>
         <Button variant="ghost" size="icon" onClick={() => { setDraft(company); setEditing(true); }}>
@@ -286,14 +344,15 @@ const CompanyProfile = ({ company, onEdit }: CompanyProfileProps) => {
         {company.gst && <p><span className="font-medium text-foreground">GST:</span> {company.gst}</p>}
         {company.annual_turnover && <p><span className="font-medium text-foreground">Turnover:</span> {company.annual_turnover}</p>}
         {company.years_experience && <p><span className="font-medium text-foreground">Experience:</span> {company.years_experience}</p>}
+        {company.authorized_signatory_name && <p><span className="font-medium text-foreground">Signatory:</span> {company.authorized_signatory_name}</p>}
       </div>
 
-      {filledFields < 4 && (
+      {filledFields < 5 && (
         <button
           onClick={() => { setDraft(company); setEditing(true); }}
           className="mt-3 w-full rounded-lg border border-dashed border-accent/30 bg-accent/5 p-2.5 text-xs font-medium text-accent hover:bg-accent/10 transition-colors"
         >
-          ⚡ Complete your profile for better proposals
+          ⚡ Complete your profile — fill ALL details once, use for every tender
         </button>
       )}
     </Card>

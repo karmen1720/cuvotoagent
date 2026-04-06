@@ -5,6 +5,58 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+function buildCompanyContext(cp: any): string {
+  if (!cp) return "Company details not provided";
+  return `
+COMPANY DETAILS:
+- Company Name: ${cp.company_name || "Not provided"}
+- Nature of Business: ${cp.nature_of_business || "Not provided"}
+- Year of Incorporation: ${cp.year_of_incorporation || "Not provided"}
+- Registered Address: ${cp.address || "Not provided"}
+- Office City/Region: ${cp.office_city || "Not provided"}
+
+AUTHORIZED SIGNATORY:
+- Name: ${cp.authorized_signatory_name || cp.contact_person || "Not provided"}
+- Designation: ${cp.authorized_signatory_designation || "Authorized Signatory"}
+- Email: ${cp.contact_email || "Not provided"}
+- Phone: ${cp.contact_phone || "Not provided"}
+
+REGISTRATION & TAX:
+- PAN: ${cp.pan || "Not provided"}
+- TAN: ${cp.tan || "Not provided"}
+- GST: ${cp.gst || "Not provided"}
+- CIN: ${cp.cin || "Not provided"}
+- Udyam/MSME Number: ${cp.udyam_number || "Not provided"}
+- DPIIT Recognition Number: ${cp.dpiit_number || "Not provided"}
+- MSME Registered: ${cp.msme ? "Yes" : "No"}
+- DPIIT Startup: ${cp.startup ? "Yes" : "No"}
+
+EXPERIENCE & CAPACITY:
+- Years of Experience: ${cp.years_experience || "Not provided"}
+- Annual Turnover: ${cp.annual_turnover || "Not provided"}
+- Employees: ${cp.employees_count || "Not provided"}
+- Certifications: ${cp.certifications?.length > 0 ? cp.certifications.join(", ") : "None"}
+- Past Projects: ${cp.past_projects?.length > 0 ? cp.past_projects.join("; ") : "None"}
+
+MAKE IN INDIA:
+- Local Content: ${cp.local_content_percentage || "100"}%
+
+ESCALATION MATRIX:
+- Level 1: ${cp.escalation_l1_name || "Not provided"} | ${cp.escalation_l1_email || ""}
+- Level 2: ${cp.escalation_l2_name || "Not provided"} | ${cp.escalation_l2_email || ""}
+- Level 3: ${cp.escalation_l3_name || "Not provided"} | ${cp.escalation_l3_email || ""}
+
+SUPPORT CENTRE:
+- Phone: ${cp.support_phone || cp.contact_phone || "Not provided"}
+- Email: ${cp.support_email || cp.contact_email || "Not provided"}
+
+BANKING:
+- Bank: ${cp.bank_name || "Not provided"}
+- Account: ${cp.bank_account || "Not provided"}
+- IFSC: ${cp.ifsc_code || "Not provided"}
+`;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -21,40 +73,10 @@ serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const companyDetails = companyProfile ? `
-COMPANY DETAILS:
-- Company Name: ${companyProfile.company_name || "Not provided"}
-- Contact Person: ${companyProfile.contact_person || "Not provided"}
-- Email: ${companyProfile.contact_email || "Not provided"}
-- Phone: ${companyProfile.contact_phone || "Not provided"}
-- Registered Address: ${companyProfile.address || "Not provided"}
-
-REGISTRATION & TAX DETAILS:
-- PAN: ${companyProfile.pan || "Not provided"}
-- TAN: ${companyProfile.tan || "Not provided"}
-- GST Number: ${companyProfile.gst || "Not provided"}
-- CIN: ${companyProfile.cin || "Not provided"}
-- MSME/Udyam Number: ${companyProfile.udyam_number || "Not provided"}
-- DPIIT Recognition Number: ${companyProfile.dpiit_number || "Not provided"}
-- MSME Registered: ${companyProfile.msme ? "Yes" : "No"}
-- DPIIT Recognized Startup: ${companyProfile.startup ? "Yes" : "No"}
-
-EXPERIENCE & CAPACITY:
-- Years of Experience: ${companyProfile.years_experience || "Not provided"}
-- Annual Turnover: ${companyProfile.annual_turnover || "Not provided"}
-- Number of Employees: ${companyProfile.employees_count || "Not provided"}
-- Certifications: ${companyProfile.certifications?.length > 0 ? companyProfile.certifications.join(", ") : "None listed"}
-- Past Projects: ${companyProfile.past_projects?.length > 0 ? companyProfile.past_projects.join("; ") : "None listed"}
-
-BANKING DETAILS:
-- Bank: ${companyProfile.bank_name || "Not provided"}
-- Account: ${companyProfile.bank_account || "Not provided"}
-- IFSC: ${companyProfile.ifsc_code || "Not provided"}
-` : "Company details not provided";
+    const companyDetails = buildCompanyContext(companyProfile);
+    const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -67,137 +89,94 @@ BANKING DETAILS:
         messages: [
           {
             role: "system",
-            content: `You are India's top government tender proposal writer with 25+ years experience winning GeM, CPPP, state government, and PSU tenders. You have deep expertise in:
-
-- GFR (General Financial Rules) 2017 compliance
-- CVC (Central Vigilance Commission) guidelines
-- Make in India / Atmanirbhar Bharat procurement policies
-- MSME Purchase Preference Policy (PPP-MII Order)
-- Startup India procurement benefits
-- GeM bid response best practices
-- CPPP two-envelope bidding systems
-
-Your proposals are:
-- Fully compliant with Indian government tender response formats
-- Written in formal Indian business English
-- Include all statutory declarations and undertakings as per GFR
-- Reference specific government circulars and policies
-- Include properly formatted compliance matrices
-- Have correct Indian date formats (DD/MM/YYYY)
-- Quote amounts in INR with words (e.g., "Rs. 50,00,000/- (Rupees Fifty Lakhs Only)")
-- Include proper stamp duty and notarization references
+            content: `You are India's top government tender proposal writer with 25+ years winning GeM, CPPP, state & PSU tenders. You generate COMPLETE, SEPARATE, submission-ready documents as per Indian government standards.
 
 CRITICAL RULES:
-1. Include ALL company registration details (PAN, TAN, GST, MSME, DPIIT) with proper formatting
-2. If details are "Not provided", write "To be furnished upon request / enclosed separately"
-3. Format the proposal in clean markdown with tables for compliance matrix
-4. Use Indian Standard numbering and referencing
-5. Include Technical Proposal AND Financial Proposal sections separately
-6. Add proper annexure references throughout`
+1. Generate ALL documents as SEPARATE SECTIONS clearly marked with "===DOCUMENT: <name>===" delimiter
+2. Use company details provided — if "Not provided", write "To be furnished upon request / enclosed separately"
+3. Format in clean markdown with tables
+4. Indian date format DD/MM/YYYY, amounts in INR with words
+5. Include company letterhead format (company name, GST, address, contact) at top of each document
+6. Include authorized signatory block at bottom of each document
+7. Today's date: ${today}`
           },
           {
             role: "user",
-            content: `Generate a COMPLETE, submission-ready tender proposal as per Indian government standards.
+            content: `Generate ALL the following SEPARATE tender submission documents for this tender. Each document MUST start with "===DOCUMENT: <name>===" on its own line.
 
-TENDER TITLE: ${tenderTitle}
-
+TENDER: ${tenderTitle}
 ${companyDetails}
 
-TENDER REQUIREMENTS EXTRACTED:
+TENDER REQUIREMENTS:
 ${JSON.stringify(requirements, null, 2)}
 
-ELIGIBILITY ASSESSMENT:
+ELIGIBILITY:
 ${JSON.stringify(eligibility, null, 2)}
 
-Generate a COMPREHENSIVE proposal with these sections following Indian tender format:
+Generate these SEPARATE documents:
 
-## PART A: TECHNICAL PROPOSAL (ENVELOPE-1)
+===DOCUMENT: Letter of Eligibility===
+Undertaking & Declaration for Turnover and Experience Criteria Exemption (MSME/Startup India). Include:
+- Declaration of MSME/Startup registration
+- Exemption claim from turnover & experience criteria as per GeM/GoI policy
+- Confirmation of technical capability
+- Undertaking that all documents are authentic
 
-1. **COVERING LETTER / BID SUBMISSION LETTER**
-   - On company letterhead format
-   - Addressed to the tendering authority
-   - Reference tender number, date, and title
-   - Declaration of acceptance of all terms
-   - Authorized signatory details with designation
-   - Company seal reference
+===DOCUMENT: Technical Proposal===
+COMPLETE Technical Solution Proposal (Envelope-1) with:
+- Cover page with project title
+- Table of Contents
+- Annexure with: Introduction, Understanding of Business Needs, Objectives, Project Scope, Key Components of Proposed Solution, Cyber Security Framework, Compliance & Regulatory Standards, Project Implementation Methodology, Project Milestones, Support & Maintenance, Contact Details
+- Detailed technical approach specific to the tender requirements
 
-2. **EXECUTIVE SUMMARY**
-   - Brief overview of understanding
-   - Key differentiators and value proposition
-   - Summary of relevant experience
+===DOCUMENT: ATC Undertaking===
+Buyer Added Bid Specific Terms and Conditions compliance. For EACH term in the tender, write "Noted & Complied" with company details.
 
-3. **COMPANY PROFILE & CREDENTIALS**
-   - Company overview, year of incorporation, nature of business
-   - Registration details table (PAN, TAN, GST, CIN, MSME/Udyam, DPIIT)
-   - Organizational structure and key management team
-   - Infrastructure details
-   - Quality certifications with validity
+===DOCUMENT: Non-Blacklisting Undertaking===
+Declaration that the company is not blacklisted by any Central/State Government/PSU/Regulatory Authority in India or worldwide. Include:
+- Not involved in litigation affecting service delivery
+- Not blacklisted for fraudulent activities
 
-4. **PRE-QUALIFICATION / ELIGIBILITY COMPLIANCE**
-   - Compliance table: Requirement | Status | Document Reference
-   - Each eligibility criterion mapped to evidence
+===DOCUMENT: Legal Proceedings Undertaking===
+Undertaking that no legal action, litigation, or proceeding is pending against the company that may affect tender performance.
 
-5. **TECHNICAL APPROACH & METHODOLOGY**
-   - Understanding of the scope of work
-   - Proposed methodology (step-by-step)
-   - Technology/tools to be deployed
-   - Quality assurance framework
-   - Risk mitigation plan
+===DOCUMENT: Make in India Certificate===
+Self-declaration as Class-I local supplier with:
+- Reference government notifications (P-45021/2/2017-B.E-ll series)
+- Local content percentage declaration
+- Location of local value addition
+- Breach acknowledgment under GFR Rule 175(1)(i)(h)
 
-6. **RESOURCE DEPLOYMENT PLAN**
-   - Team structure with CVs of key personnel
-   - Roles and responsibilities matrix
-   - Equipment/infrastructure deployment
+===DOCUMENT: Office Location Undertaking===
+Confirmation of operational office and service & support centre with:
+- Head office address details table
+- Contact person, phone, email
 
-7. **PAST EXPERIENCE & TRACK RECORD**
-   - Relevant project table: Client | Project | Value | Duration | Status
-   - Performance certificates reference
-   - Similar work orders completed
+===DOCUMENT: Support Centre & Escalation Matrix===
+Complete support centre details and escalation matrix table with Level I, II, III contacts.
 
-8. **PROJECT IMPLEMENTATION PLAN**
-   - Gantt chart description with milestones
-   - Deliverable schedule
-   - Reporting mechanism
+===DOCUMENT: Technical Compliance===
+Technical compliance table with Sr. No, Particulars (from tender requirements), Compliance (Y/N), and evidence notes. Cover ALL technical requirements from the tender.
 
-9. **MSME / STARTUP BENEFITS CLAIMED**
-   - EMD exemption (if applicable with Udyam reference)
-   - Purchase preference under PPP-MII
-   - Prior experience/turnover relaxation for startups
-   - Applicable government circulars referenced
+===DOCUMENT: Financial Proposal===
+Financial Bid / BOQ with:
+- Pricing table: S.No | Item | Unit | Qty | Rate (INR) | Amount (INR)
+- GST breakup
+- Total in words and figures
+- Price validity, payment terms
+- EMD details, PBG commitment
 
-## PART B: FINANCIAL PROPOSAL (ENVELOPE-2)
+===DOCUMENT: Statutory Declarations===
+All statutory declarations:
+- Self-declaration of non-debarment
+- No conflict of interest
+- Authenticity of information
+- Acceptance of tender T&C
 
-10. **FINANCIAL BID / BOQ (Bill of Quantities)**
-    - Pricing table format: S.No | Item | Unit | Qty | Rate | Amount
-    - All amounts in INR with GST breakup
-    - Total in words and figures
-    - Price validity statement
+===DOCUMENT: Documents Checklist===
+Complete checklist table: S.No | Document | Page No. | Status (Enclosed/To be furnished)
 
-11. **COMMERCIAL TERMS**
-    - Payment schedule and milestones
-    - EMD details and bank guarantee format
-    - Performance Bank Guarantee commitment
-    - Insurance and indemnity provisions
-    - Warranty/AMC terms offered
-
-## PART C: ANNEXURES & DECLARATIONS
-
-12. **STATUTORY DECLARATIONS**
-    - Self-declaration of non-blacklisting / non-debarment
-    - No conflict of interest declaration
-    - Authenticity of information declaration
-    - Declaration on judicial/arbitration proceedings
-    - Acceptance of tender terms and conditions
-
-13. **DOCUMENTS CHECKLIST**
-    - Table: S.No | Document | Page No. | Status (Enclosed/To be furnished)
-    - All required documents mapped
-
-14. **POWER OF ATTORNEY / AUTHORIZATION**
-    - Authorized signatory details
-    - Board resolution reference
-
-Make it PROFESSIONAL, COMPREHENSIVE, and READY FOR SUBMISSION with proper Indian government tender formatting. Use tables extensively for compliance matrices and BOQ.`
+Make each document PROFESSIONAL, COMPLETE, and READY FOR SUBMISSION with proper Indian government formatting. Use the exact company details provided.`
           }
         ],
         reasoning: { effort: "xhigh" }

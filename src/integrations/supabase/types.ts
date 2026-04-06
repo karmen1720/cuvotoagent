@@ -18,6 +18,8 @@ export type Database = {
         Row: {
           address: string | null
           annual_turnover: string | null
+          authorized_signatory_designation: string | null
+          authorized_signatory_name: string | null
           bank_account: string | null
           bank_name: string | null
           certifications: string[] | null
@@ -29,22 +31,36 @@ export type Database = {
           created_at: string
           dpiit_number: string | null
           employees_count: string | null
+          escalation_l1_email: string | null
+          escalation_l1_name: string | null
+          escalation_l2_email: string | null
+          escalation_l2_name: string | null
+          escalation_l3_email: string | null
+          escalation_l3_name: string | null
           gst: string | null
           id: string
           ifsc_code: string | null
+          local_content_percentage: string | null
           msme: boolean
+          nature_of_business: string | null
+          office_city: string | null
           pan: string | null
           past_projects: string[] | null
           startup: boolean
+          support_email: string | null
+          support_phone: string | null
           tan: string | null
           udyam_number: string | null
           updated_at: string
           user_id: string | null
+          year_of_incorporation: string | null
           years_experience: string | null
         }
         Insert: {
           address?: string | null
           annual_turnover?: string | null
+          authorized_signatory_designation?: string | null
+          authorized_signatory_name?: string | null
           bank_account?: string | null
           bank_name?: string | null
           certifications?: string[] | null
@@ -56,22 +72,36 @@ export type Database = {
           created_at?: string
           dpiit_number?: string | null
           employees_count?: string | null
+          escalation_l1_email?: string | null
+          escalation_l1_name?: string | null
+          escalation_l2_email?: string | null
+          escalation_l2_name?: string | null
+          escalation_l3_email?: string | null
+          escalation_l3_name?: string | null
           gst?: string | null
           id?: string
           ifsc_code?: string | null
+          local_content_percentage?: string | null
           msme?: boolean
+          nature_of_business?: string | null
+          office_city?: string | null
           pan?: string | null
           past_projects?: string[] | null
           startup?: boolean
+          support_email?: string | null
+          support_phone?: string | null
           tan?: string | null
           udyam_number?: string | null
           updated_at?: string
           user_id?: string | null
+          year_of_incorporation?: string | null
           years_experience?: string | null
         }
         Update: {
           address?: string | null
           annual_turnover?: string | null
+          authorized_signatory_designation?: string | null
+          authorized_signatory_name?: string | null
           bank_account?: string | null
           bank_name?: string | null
           certifications?: string[] | null
@@ -83,17 +113,29 @@ export type Database = {
           created_at?: string
           dpiit_number?: string | null
           employees_count?: string | null
+          escalation_l1_email?: string | null
+          escalation_l1_name?: string | null
+          escalation_l2_email?: string | null
+          escalation_l2_name?: string | null
+          escalation_l3_email?: string | null
+          escalation_l3_name?: string | null
           gst?: string | null
           id?: string
           ifsc_code?: string | null
+          local_content_percentage?: string | null
           msme?: boolean
+          nature_of_business?: string | null
+          office_city?: string | null
           pan?: string | null
           past_projects?: string[] | null
           startup?: boolean
+          support_email?: string | null
+          support_phone?: string | null
           tan?: string | null
           udyam_number?: string | null
           updated_at?: string
           user_id?: string | null
+          year_of_incorporation?: string | null
           years_experience?: string | null
         }
         Relationships: []
