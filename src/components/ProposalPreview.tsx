@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Copy, Check, ChevronDown, ChevronRight } from "lucide-react";
+import { FileText, Download, Copy, Check, ChevronDown, ChevronRight, FileDown } from "lucide-react";
+import { exportDocumentToPdf, exportAllDocumentsToPdf } from "@/lib/pdf-export";
+import type { CompanyData } from "@/components/CompanyProfile";
 
 interface ProposalPreviewProps {
   text: string;
+  company?: CompanyData;
 }
 
 interface DocumentSection {
@@ -16,8 +18,6 @@ interface DocumentSection {
 function parseDocuments(text: string): DocumentSection[] {
   const delimiter = /===DOCUMENT:\s*(.+?)===/g;
   const sections: DocumentSection[] = [];
-  let lastIndex = 0;
-  let lastName = "";
   let match;
 
   const matches: { name: string; index: number }[] = [];
@@ -29,7 +29,6 @@ function parseDocuments(text: string): DocumentSection[] {
     return [{ name: "Complete Proposal", content: text }];
   }
 
-  // Content before first delimiter
   const preamble = text.substring(0, matches[0].index - `===DOCUMENT: ${matches[0].name}===`.length).trim();
   if (preamble) {
     sections.push({ name: "Overview", content: preamble });
@@ -62,7 +61,7 @@ function renderMarkdown(content: string) {
     }
     if (line.startsWith("|") && line.includes("|")) {
       const cells = line.split("|").filter(Boolean).map(c => c.trim());
-      if (cells.every(c => /^[-:]+$/.test(c))) return null; // separator row
+      if (cells.every(c => /^[-:]+$/.test(c))) return null;
       return (
         <div key={i} className="grid gap-2 text-xs text-muted-foreground border-b border-border py-1" style={{ gridTemplateColumns: `repeat(${cells.length}, minmax(0, 1fr))` }}>
           {cells.map((cell, j) => <span key={j} className="px-1">{cell}</span>)}
@@ -76,7 +75,7 @@ function renderMarkdown(content: string) {
   });
 }
 
-const DocumentCard = ({ section, index }: { section: DocumentSection; index: number }) => {
+const DocumentCard = ({ section, index, company }: { section: DocumentSection; index: number; company?: CompanyData }) => {
   const [expanded, setExpanded] = useState(index === 0);
   const [copied, setCopied] = useState(false);
 
@@ -86,7 +85,7 @@ const DocumentCard = ({ section, index }: { section: DocumentSection; index: num
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownload = () => {
+  const handleDownloadMd = () => {
     const blob = new Blob([section.content], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -94,6 +93,18 @@ const DocumentCard = ({ section, index }: { section: DocumentSection; index: num
     a.download = `${section.name.replace(/\s+/g, "_").toLowerCase()}.md`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPdf = () => {
+    exportDocumentToPdf(section.name, section.content, company ? {
+      company_name: company.company_name,
+      address: company.address,
+      contact_email: company.contact_email,
+      contact_phone: company.contact_phone,
+      gst: company.gst,
+      pan: company.pan,
+      cin: company.cin,
+    } : undefined);
   };
 
   return (
@@ -108,10 +119,13 @@ const DocumentCard = ({ section, index }: { section: DocumentSection; index: num
           <span className="text-sm font-semibold text-foreground">{section.name}</span>
         </div>
         <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopy}>
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="Copy" onClick={handleCopy}>
             {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleDownload}>
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="Download PDF" onClick={handleDownloadPdf}>
+            <FileDown className="w-3 h-3" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="Download Markdown" onClick={handleDownloadMd}>
             <Download className="w-3 h-3" />
           </Button>
         </div>
@@ -125,18 +139,22 @@ const DocumentCard = ({ section, index }: { section: DocumentSection; index: num
   );
 };
 
-const ProposalPreview = ({ text }: ProposalPreviewProps) => {
+const ProposalPreview = ({ text, company }: ProposalPreviewProps) => {
   const sections = parseDocuments(text);
   const [copied, setCopied] = useState(false);
 
-  const handleDownloadAll = () => {
-    const blob = new Blob([text], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "complete_tender_documents.md";
-    a.click();
-    URL.revokeObjectURL(url);
+  const companyHeader = company ? {
+    company_name: company.company_name,
+    address: company.address,
+    contact_email: company.contact_email,
+    contact_phone: company.contact_phone,
+    gst: company.gst,
+    pan: company.pan,
+    cin: company.cin,
+  } : undefined;
+
+  const handleDownloadAllPdf = () => {
+    exportAllDocumentsToPdf(text, sections, companyHeader);
   };
 
   const handleCopyAll = async () => {
@@ -147,7 +165,7 @@ const ProposalPreview = ({ text }: ProposalPreviewProps) => {
 
   return (
     <Card className="shadow-[var(--shadow-card)] overflow-hidden">
-      <div className="p-4 border-b border-border flex items-center justify-between">
+      <div className="p-4 border-b border-border flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-accent" />
           <h3 className="font-display font-semibold text-foreground">
@@ -159,15 +177,15 @@ const ProposalPreview = ({ text }: ProposalPreviewProps) => {
             {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
             {copied ? "Copied" : "Copy All"}
           </Button>
-          <Button variant="accent" size="sm" className="gap-1.5 text-xs" onClick={handleDownloadAll}>
-            <Download className="w-3 h-3" />
-            Download All
+          <Button variant="accent" size="sm" className="gap-1.5 text-xs" onClick={handleDownloadAllPdf}>
+            <FileDown className="w-3 h-3" />
+            Download All PDF
           </Button>
         </div>
       </div>
       <div className="p-4 space-y-3">
         {sections.map((section, i) => (
-          <DocumentCard key={i} section={section} index={i} />
+          <DocumentCard key={i} section={section} index={i} company={company} />
         ))}
       </div>
     </Card>
