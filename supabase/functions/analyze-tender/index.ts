@@ -21,16 +21,13 @@ serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const gatewayHeaders = {
       Authorization: `Bearer ${LOVABLE_API_KEY}`,
       "Content-Type": "application/json",
     };
 
-    // Extract requirements using deep-reasoning AI
     const extractionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: gatewayHeaders,
@@ -39,55 +36,115 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert Indian government tender document analyst with deep knowledge of:
-- GeM (Government e-Marketplace) tenders
-- CPPP (Central Public Procurement Portal) requirements
-- State government tender portals
-- PSU and corporate tender formats
-- Indian tender compliance requirements (EMD, PBG, Turnover, Experience)
-- GFR (General Financial Rules) requirements
-- MSME & Startup India policy benefits
+            content: `You are an expert AI Tender & Public Procurement Consultant for the Indian market. You have deep expertise in:
+- GFR 2017, CVC guidelines, Public Procurement (Preference to Make in India) Order
+- GeM, CPPP, State e-Procurement portals
+- MSME & Startup India policy benefits (EMD/fee waivers, purchase preference, turnover/experience relaxation)
+- Rule 144(xi) GFR: land border/security restrictions
+- Technical & Financial bid evaluation methodologies
 
-Extract ALL requirements meticulously. Pay special attention to:
-1. Earnest Money Deposit (EMD) amount and exemptions
-2. Performance Bank Guarantee (PBG) requirements
-3. Tender fee and processing charges
-4. Pre-qualification criteria
-5. Technical evaluation criteria with marks/weightage
-6. Financial bid format requirements
-7. Submission deadline with exact date/time
-8. Pre-bid meeting dates
-9. Bid validity period
-10. Warranty/AMC requirements
+CRITICAL RULES:
+1. Extract EVERY requirement meticulously — do NOT assume or fabricate data
+2. If a field is not found in the document, set it as "Not specified in document"
+3. For eligibility mapping, compare company profile against tender requirements strictly
+4. Classify Make in India status: Class-I (>50% local content) or Class-II (>20%)
+5. Identify ALL penalty/LD clauses and termination risks
+6. Draft 2-3 strategic pre-bid queries for ambiguous or exclusionary requirements
 
 Always respond with valid JSON using the tool calling format.`
           },
           {
             role: "user",
-            content: `Analyze this Indian tender document thoroughly and extract every requirement:\n\n${pdfText.substring(0, 12000)}`
+            content: `Analyze this Indian tender document and produce a COMPREHENSIVE structured report.
+
+COMPANY PROFILE (for eligibility mapping):
+${companyProfile ? JSON.stringify(companyProfile) : "Not provided — skip eligibility mapping"}
+
+TENDER DOCUMENT TEXT:
+${pdfText.substring(0, 15000)}`
           }
         ],
         tools: [
           {
             type: "function",
             function: {
-              name: "extract_tender_requirements",
-              description: "Extract comprehensive structured requirements from an Indian tender document",
+              name: "extract_tender_analysis",
+              description: "Produce a comprehensive Indian tender analysis report",
               parameters: {
                 type: "object",
                 properties: {
-                  documents: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "List of ALL required documents (PAN card, GST certificate, ITR, balance sheets, experience certificates, EMD, tender fee receipt, etc.)"
+                  executive_summary: {
+                    type: "object",
+                    properties: {
+                      tender_id: { type: "string", description: "Tender ID / Reference Number" },
+                      issuing_authority: { type: "string", description: "Issuing authority / organization name" },
+                      tender_type: { type: "string", description: "Open/Limited/Single/Two-Bid/e-Reverse Auction" },
+                      estimated_value: { type: "string", description: "Estimated contract value in INR" },
+                      emd_amount: { type: "string", description: "EMD amount and mode of payment" },
+                      tender_fee: { type: "string", description: "Tender document fee" },
+                      submission_deadline: { type: "string", description: "Last date & time for submission (DD/MM/YYYY HH:MM)" },
+                      bid_opening_date: { type: "string", description: "Technical bid opening date" },
+                      pre_bid_date: { type: "string", description: "Pre-bid meeting date if any" },
+                      bid_validity: { type: "string", description: "Bid validity period" },
+                      summary: { type: "string", description: "2-3 line scope summary of what the tender is about" }
+                    },
+                    required: ["tender_id", "issuing_authority", "tender_type", "estimated_value", "submission_deadline", "summary"],
+                    additionalProperties: false
                   },
-                  experience: { type: "string", description: "Minimum experience requirement in years and type" },
-                  turnover: { type: "string", description: "Minimum annual turnover requirement with financial years" },
-                  emd_amount: { type: "string", description: "Earnest Money Deposit amount and mode of payment" },
-                  tender_fee: { type: "string", description: "Tender document fee amount" },
-                  pbg_percentage: { type: "string", description: "Performance Bank Guarantee percentage and validity" },
-                  bid_validity: { type: "string", description: "Bid validity period in days" },
-                  pre_bid_date: { type: "string", description: "Pre-bid meeting date if mentioned" },
+                  eligibility_mapping: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        requirement: { type: "string", description: "Tender requirement (e.g. Min. Avg. Turnover)" },
+                        tender_asks: { type: "string", description: "What the tender demands" },
+                        company_status: { type: "string", description: "Company's current status from profile or 'Data not provided'" },
+                        gap_action: { type: "string", description: "Compliant / Non-Compliant / Action Required with detail" }
+                      },
+                      required: ["requirement", "tender_asks", "company_status", "gap_action"],
+                      additionalProperties: false
+                    },
+                    description: "Row-by-row eligibility mapping table"
+                  },
+                  compliance_exemptions: {
+                    type: "object",
+                    properties: {
+                      msme_analysis: { type: "string", description: "MSME benefits: EMD waiver, fee waiver, purchase preference, turnover/experience relaxation" },
+                      startup_analysis: { type: "string", description: "Startup India DPIIT benefits: prior experience & turnover relaxation" },
+                      make_in_india: { type: "string", description: "PPP-MII classification: Class-I (>50%) or Class-II (>20%), purchase preference explanation" },
+                      rule_144_xi: { type: "string", description: "Land border / security restriction check under GFR Rule 144(xi)" },
+                      other_exemptions: { type: "array", items: { type: "string" }, description: "Any other exemptions or special provisions" }
+                    },
+                    required: ["msme_analysis", "startup_analysis", "make_in_india"],
+                    additionalProperties: false
+                  },
+                  boq_analysis: {
+                    type: "object",
+                    properties: {
+                      scope_items: { type: "array", items: { type: "string" }, description: "Breakdown of goods/services required" },
+                      restrictive_specs: { type: "array", items: { type: "string" }, description: "Any restrictive or brand-specific specifications" },
+                      payment_terms: { type: "string", description: "Payment schedule and terms" },
+                      pbg_requirement: { type: "string", description: "Performance Bank Guarantee details" },
+                      warranty_amc: { type: "string", description: "Warranty and AMC requirements" },
+                      penalties_ld: { type: "string", description: "Liquidated Damages / penalty clauses" }
+                    },
+                    required: ["scope_items", "payment_terms", "pbg_requirement"],
+                    additionalProperties: false
+                  },
+                  document_checklist: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        document: { type: "string", description: "Document name" },
+                        mandatory: { type: "boolean", description: "Whether this document is mandatory" },
+                        status: { type: "string", description: "Can be assessed from company profile: Available / Not Available / To Be Arranged" }
+                      },
+                      required: ["document", "mandatory"],
+                      additionalProperties: false
+                    },
+                    description: "Complete list of required documents for submission"
+                  },
                   technical_criteria: {
                     type: "array",
                     items: {
@@ -100,38 +157,44 @@ Always respond with valid JSON using the tool calling format.`
                       required: ["criterion"],
                       additionalProperties: false
                     },
-                    description: "Technical evaluation criteria with marks"
+                    description: "Technical evaluation criteria with marks/weightage"
                   },
-                  msme_benefits: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "Benefits available for MSME registered companies (EMD exemption, purchase preference, etc.)"
+                  risk_assessment: {
+                    type: "object",
+                    properties: {
+                      risk_factors: { type: "array", items: { type: "string" }, description: "Key risk factors: LD clauses, termination risks, onerous terms" },
+                      pre_bid_queries: { type: "array", items: { type: "string" }, description: "2-3 strategic pre-bid queries to clarify ambiguities or exclusionary requirements" },
+                      strategic_notes: { type: "array", items: { type: "string" }, description: "Strategic action items and recommendations" }
+                    },
+                    required: ["risk_factors", "pre_bid_queries", "strategic_notes"],
+                    additionalProperties: false
                   },
-                  startup_benefits: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "Benefits for DPIIT recognized startups (prior experience relaxation, turnover relaxation, etc.)"
+                  overall_eligibility: {
+                    type: "object",
+                    properties: {
+                      score: { type: "number", description: "Overall eligibility score 0-100" },
+                      recommendation: { type: "string", description: "BID / CONDITIONAL BID / DO NOT BID with clear reasons" },
+                      missing_data: { type: "array", items: { type: "string" }, description: "List of missing data points needed to confirm full eligibility" }
+                    },
+                    required: ["score", "recommendation"],
+                    additionalProperties: false
                   },
-                  tender_value: { type: "string", description: "Estimated tender value / contract amount" },
-                  deadline: { type: "string", description: "Submission deadline with date and time" },
-                  summary: { type: "string", description: "Detailed summary of the tender scope, deliverables, and timeline" },
-                  scope_of_work: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "Detailed scope of work items"
-                  },
-                  payment_terms: { type: "string", description: "Payment terms and schedule" },
-                  warranty_amc: { type: "string", description: "Warranty and AMC requirements" },
-                  penalties: { type: "string", description: "Penalty clauses for delay or non-compliance" }
+                  // Legacy fields for backward compatibility
+                  documents: { type: "array", items: { type: "string" } },
+                  experience: { type: "string" },
+                  turnover: { type: "string" },
+                  msme_benefits: { type: "array", items: { type: "string" } },
+                  startup_benefits: { type: "array", items: { type: "string" } },
+                  summary: { type: "string" }
                 },
-                required: ["documents", "experience", "turnover", "msme_benefits", "startup_benefits", "summary"],
+                required: ["executive_summary", "eligibility_mapping", "compliance_exemptions", "boq_analysis", "document_checklist", "risk_assessment", "overall_eligibility", "documents", "experience", "turnover", "msme_benefits", "startup_benefits", "summary"],
                 additionalProperties: false
               }
             }
           }
         ],
-        tool_choice: { type: "function", function: { name: "extract_tender_requirements" } },
-        reasoning: { effort: "high" }
+        tool_choice: { type: "function", function: { name: "extract_tender_analysis" } },
+        reasoning: { effort: "xhigh" }
       }),
     });
 
@@ -173,94 +236,29 @@ Always respond with valid JSON using the tool calling format.`
       }
     }
 
-    // Eligibility check with deep analysis
-    let eligibility = null;
-    if (companyProfile) {
-      const eligibilityResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: gatewayHeaders,
-        body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
-          messages: [
-            {
-              role: "system",
-              content: `You are an expert Indian tender eligibility assessor. Evaluate EVERY criterion strictly:
+    // Build eligibility from the new structured output
+    const eligibility = requirements.overall_eligibility ? {
+      overall_score: requirements.overall_eligibility.score,
+      checks: (requirements.eligibility_mapping || []).map((row: any) => ({
+        label: row.requirement,
+        eligible: row.gap_action?.toLowerCase().includes("compliant") && !row.gap_action?.toLowerCase().includes("non-compliant"),
+        detail: `Tender: ${row.tender_asks} | Company: ${row.company_status} | ${row.gap_action}`
+      })),
+      recommendation: requirements.overall_eligibility.recommendation,
+      risk_factors: requirements.risk_assessment?.risk_factors || [],
+      action_items: requirements.risk_assessment?.strategic_notes || [],
+      missing_data: requirements.overall_eligibility.missing_data || [],
+      pre_bid_queries: requirements.risk_assessment?.pre_bid_queries || []
+    } : null;
 
-1. Check turnover against minimum requirements (compare actual numbers)
-2. Check years of experience against minimum requirements
-3. Verify all mandatory documents availability
-4. Check MSME/Startup benefits applicability
-5. EMD exemption eligibility
-6. Technical capability match
-7. Geographical/sector restrictions
-8. Past experience relevance
-9. Certification requirements (ISO, CMMI, etc.)
-10. Consortium/JV requirements if any
-11. Blacklisting/debarment check
-12. Submission deadline feasibility
-
-Be strict - if data is missing, mark as NOT eligible for that criterion.
-Score realistically - don't inflate scores.`
-            },
-            {
-              role: "user",
-              content: `Assess eligibility thoroughly:\n\nTender Requirements:\n${JSON.stringify(requirements)}\n\nCompany Profile:\n${JSON.stringify(companyProfile)}`
-            }
-          ],
-          tools: [
-            {
-              type: "function",
-              function: {
-                name: "assess_eligibility",
-                description: "Detailed eligibility assessment for Indian tender",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    overall_score: { type: "number", description: "Eligibility score 0-100" },
-                    checks: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          label: { type: "string" },
-                          eligible: { type: "boolean" },
-                          detail: { type: "string" }
-                        },
-                        required: ["label", "eligible", "detail"],
-                        additionalProperties: false
-                      }
-                    },
-                    recommendation: { type: "string", description: "Clear recommendation: BID / CONDITIONAL BID / DO NOT BID with reasons" },
-                    risk_factors: {
-                      type: "array",
-                      items: { type: "string" },
-                      description: "Key risk factors to consider"
-                    },
-                    action_items: {
-                      type: "array",
-                      items: { type: "string" },
-                      description: "Immediate action items before submission"
-                    }
-                  },
-                  required: ["overall_score", "checks", "recommendation"],
-                  additionalProperties: false
-                }
-              }
-            }
-          ],
-          tool_choice: { type: "function", function: { name: "assess_eligibility" } },
-          reasoning: { effort: "high" }
-        }),
-      });
-
-      if (eligibilityResponse.ok) {
-        const eligResult = await eligibilityResponse.json();
-        const eligToolCall = eligResult.choices?.[0]?.message?.tool_calls?.[0];
-        if (eligToolCall?.function?.arguments) {
-          eligibility = JSON.parse(eligToolCall.function.arguments);
-        }
-      }
-    }
+    // Merge legacy fields for backward compat
+    requirements.summary = requirements.summary || requirements.executive_summary?.summary || "";
+    requirements.tender_value = requirements.executive_summary?.estimated_value || "";
+    requirements.deadline = requirements.executive_summary?.submission_deadline || "";
+    requirements.emd_amount = requirements.executive_summary?.emd_amount || "";
+    requirements.tender_fee = requirements.executive_summary?.tender_fee || "";
+    requirements.bid_validity = requirements.executive_summary?.bid_validity || "";
+    requirements.pbg_percentage = requirements.boq_analysis?.pbg_requirement || "";
 
     return new Response(JSON.stringify({ requirements, eligibility }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

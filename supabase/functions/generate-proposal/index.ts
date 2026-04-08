@@ -89,7 +89,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are India's top government tender proposal writer with 25+ years winning GeM, CPPP, state & PSU tenders. You generate COMPLETE, SEPARATE, submission-ready documents as per Indian government standards.
+            content: `You are India's top government tender proposal writer with 25+ years winning GeM, CPPP, state & PSU tenders. You adhere strictly to GFR 2017, CVC guidelines, and Public Procurement (Preference to Make in India) Order.
 
 CRITICAL RULES:
 1. Generate ALL documents as SEPARATE SECTIONS clearly marked with "===DOCUMENT: <name>===" delimiter
@@ -98,7 +98,8 @@ CRITICAL RULES:
 4. Indian date format DD/MM/YYYY, amounts in INR with words
 5. Include company letterhead format (company name, GST, address, contact) at top of each document
 6. Include authorized signatory block at bottom of each document
-7. Today's date: ${today}`
+7. Today's date: ${today}
+8. FIRST document MUST be a Covering Letter on company letterhead — this is mandatory for every Indian tender submission`
           },
           {
             role: "user",
@@ -113,7 +114,16 @@ ${JSON.stringify(requirements, null, 2)}
 ELIGIBILITY:
 ${JSON.stringify(eligibility, null, 2)}
 
-Generate these SEPARATE documents:
+Generate these SEPARATE documents IN ORDER:
+
+===DOCUMENT: Covering Letter===
+MANDATORY first document. Formal covering letter on company letterhead addressed to the Tender Issuing Authority. Include:
+- Reference to Tender ID/NIT number
+- List of enclosed documents
+- Declaration of compliance with tender T&C
+- Declaration that information is true and correct
+- Request for favourable consideration
+- Authorized signatory with seal
 
 ===DOCUMENT: Letter of Eligibility===
 Undertaking & Declaration for Turnover and Experience Criteria Exemption (MSME/Startup India). Include:
