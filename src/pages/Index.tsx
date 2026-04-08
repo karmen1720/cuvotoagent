@@ -279,69 +279,6 @@ const Index = () => {
                     >
                       <RequirementsDisplay requirements={requirements} />
 
-                      {/* Extra requirement details */}
-                      {(requirements.emd_amount || requirements.tender_fee || requirements.bid_validity || requirements.deadline) && (
-                        <div className="rounded-lg border border-border bg-card p-4">
-                          <h4 className="text-sm font-semibold text-foreground mb-3">📋 Key Tender Details</h4>
-                          <div className="grid grid-cols-2 gap-3">
-                            {requirements.emd_amount && (
-                              <div className="rounded-md bg-muted p-2.5">
-                                <p className="text-xs text-muted-foreground">EMD Amount</p>
-                                <p className="text-sm font-semibold text-foreground">{requirements.emd_amount}</p>
-                              </div>
-                            )}
-                            {requirements.tender_fee && (
-                              <div className="rounded-md bg-muted p-2.5">
-                                <p className="text-xs text-muted-foreground">Tender Fee</p>
-                                <p className="text-sm font-semibold text-foreground">{requirements.tender_fee}</p>
-                              </div>
-                            )}
-                            {requirements.deadline && (
-                              <div className="rounded-md bg-muted p-2.5">
-                                <p className="text-xs text-muted-foreground">Submission Deadline</p>
-                                <p className="text-sm font-semibold text-foreground">{requirements.deadline}</p>
-                              </div>
-                            )}
-                            {requirements.bid_validity && (
-                              <div className="rounded-md bg-muted p-2.5">
-                                <p className="text-xs text-muted-foreground">Bid Validity</p>
-                                <p className="text-sm font-semibold text-foreground">{requirements.bid_validity}</p>
-                              </div>
-                            )}
-                            {requirements.tender_value && (
-                              <div className="rounded-md bg-muted p-2.5">
-                                <p className="text-xs text-muted-foreground">Tender Value</p>
-                                <p className="text-sm font-semibold text-foreground">{requirements.tender_value}</p>
-                              </div>
-                            )}
-                            {requirements.pbg_percentage && (
-                              <div className="rounded-md bg-muted p-2.5">
-                                <p className="text-xs text-muted-foreground">PBG</p>
-                                <p className="text-sm font-semibold text-foreground">{requirements.pbg_percentage}</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Technical criteria */}
-                      {requirements.technical_criteria && requirements.technical_criteria.length > 0 && (
-                        <div className="rounded-lg border border-border bg-card p-4">
-                          <h4 className="text-sm font-semibold text-foreground mb-3">📊 Technical Evaluation Criteria</h4>
-                          <div className="space-y-2">
-                            {requirements.technical_criteria.map((tc: any, i: number) => (
-                              <div key={i} className="flex items-center justify-between rounded-md bg-muted p-2.5">
-                                <span className="text-sm text-foreground">{tc.criterion}</span>
-                                <div className="flex gap-3 text-xs text-muted-foreground">
-                                  {tc.max_marks && <span>Max: {tc.max_marks}</span>}
-                                  {tc.minimum_required && <span className="text-accent">Min: {tc.minimum_required}</span>}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
                       {eligibility && (
                         <EligibilityChecker results={eligibility.checks} overallScore={eligibility.overall_score} />
                       )}
@@ -356,36 +293,18 @@ const Index = () => {
                         </div>
                       )}
 
-                      {/* Risk factors */}
-                      {eligibility?.risk_factors && eligibility.risk_factors.length > 0 && (
-                        <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-4">
+                      {/* Missing data prompts */}
+                      {eligibility?.missing_data && eligibility.missing_data.length > 0 && (
+                        <div className="rounded-lg bg-warning/10 border border-warning/20 p-4">
                           <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4 text-destructive" />
-                            Risk Factors
+                            <AlertTriangle className="w-4 h-4 text-warning" />
+                            Missing Data — Please Provide
                           </p>
                           <ul className="space-y-1">
-                            {eligibility.risk_factors.map((r, i) => (
+                            {eligibility.missing_data.map((m: string, i: number) => (
                               <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-destructive mt-1.5 flex-shrink-0" />
-                                {r}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {/* Action items */}
-                      {eligibility?.action_items && eligibility.action_items.length > 0 && (
-                        <div className="rounded-lg bg-success/5 border border-success/20 p-4">
-                          <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-success" />
-                            Action Items Before Submission
-                          </p>
-                          <ul className="space-y-1">
-                            {eligibility.action_items.map((a, i) => (
-                              <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-success mt-1.5 flex-shrink-0" />
-                                {a}
+                                <span className="w-1.5 h-1.5 rounded-full bg-warning mt-1.5 flex-shrink-0" />
+                                {m}
                               </li>
                             ))}
                           </ul>
