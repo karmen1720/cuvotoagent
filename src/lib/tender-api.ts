@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { TenderRequirements } from "@/components/RequirementsDisplay";
 import type { CompanyData } from "@/components/CompanyProfile";
+import { extractPdfText } from "@/lib/pdf-text";
+import Papa from "papaparse";
 
 interface EligibilityCheck {
   label: string;
@@ -46,62 +48,26 @@ export async function generateProposal(
 }
 
 export async function extractTextFromPdf(file: File): Promise<string> {
-  // Read PDF as text - basic extraction from raw bytes
-  // For production, you'd use a proper PDF parser
-  const arrayBuffer = await file.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
-  
-  // Try to extract text content from PDF binary
-  let text = "";
-  let inText = false;
-  let parenDepth = 0;
-  
-  const decoder = new TextDecoder("latin1");
-  const content = decoder.decode(bytes);
-  
-  // Extract text between BT/ET blocks and parentheses
-  const textMatches = content.match(/\(([^)]*)\)/g);
-  if (textMatches) {
-    text = textMatches
-      .map(m => m.slice(1, -1))
-      .filter(t => t.length > 1 && /[a-zA-Z]/.test(t))
-      .join(" ");
+  try {
+    const text = await extractPdfText(file);
+    if (text && text.length >= 200) return text;
+    throw new Error("Extracted text too short");
+  } catch (e) {
+    console.warn("[extractTextFromPdf] pdf.js failed, returning filename fallback", e);
+    return `Tender document: ${file.name}\n\n(Note: automatic text extraction failed. Please paste the tender text manually for best results.)`;
   }
-  
-  // If we couldn't extract much, use the filename + raw readable portions
-  if (text.length < 50) {
-    // Fallback: extract any readable ASCII sequences
-    const readableChunks: string[] = [];
-    let chunk = "";
-    for (let i = 0; i < content.length; i++) {
-      const code = content.charCodeAt(i);
-      if (code >= 32 && code <= 126) {
-        chunk += content[i];
-      } else {
-        if (chunk.length > 4) readableChunks.push(chunk);
-        chunk = "";
-      }
-    }
-    if (chunk.length > 4) readableChunks.push(chunk);
-    text = readableChunks.join(" ").substring(0, 10000);
-  }
-
-  return text || `Tender document: ${file.name}`;
 }
 
 export function parseCsvToTenders(text: string): string[] {
-  const lines = text.split("\n").filter(l => l.trim());
-  if (lines.length < 2) return [];
-  
-  const headers = lines[0].split(",").map(h => h.trim().replace(/"/g, ""));
-  const titleIndex = headers.findIndex(h => 
-    h.toLowerCase().includes("tender") && h.toLowerCase().includes("title")
-  ) ?? headers.findIndex(h => h.toLowerCase().includes("title")) ?? 0;
-  
-  const idx = titleIndex >= 0 ? titleIndex : 0;
-  
-  return lines.slice(1).map(line => {
-    const cols = line.split(",").map(c => c.trim().replace(/"/g, ""));
-    return cols[idx] || "";
-  }).filter(Boolean);
+  const parsed = Papa.parse<string[]>(text, { skipEmptyLines: true });
+  if (!parsed.data || parsed.data.length < 2) return [];
+
+  const headers = (parsed.data[0] as string[]).map((h) => String(h).trim().toLowerCase());
+  let titleIdx = headers.findIndex((h) => h.includes("tender") && h.includes("title"));
+  if (titleIdx === -1) titleIdx = headers.findIndex((h) => h.includes("title") || h.includes("tender") || h.includes("name"));
+  if (titleIdx === -1) titleIdx = 0;
+
+  return (parsed.data.slice(1) as string[][])
+    .map((row) => String(row[titleIdx] ?? "").trim())
+    .filter(Boolean);
 }

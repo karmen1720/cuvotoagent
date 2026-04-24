@@ -16,12 +16,16 @@ export type Database = {
     Tables: {
       company_profiles: {
         Row: {
+          additional_gsts: string[] | null
           address: string | null
           annual_turnover: string | null
           authorized_signatory_designation: string | null
           authorized_signatory_name: string | null
           bank_account: string | null
           bank_name: string | null
+          bee_rating: string | null
+          bis_number: string | null
+          business_type: string | null
           certifications: string[] | null
           cin: string | null
           company_name: string
@@ -29,27 +33,46 @@ export type Database = {
           contact_person: string | null
           contact_phone: string | null
           created_at: string
+          dd_bank: string | null
+          dd_favouring: string | null
           dpiit_number: string | null
+          dsc_expiry: string | null
+          duns_number: string | null
           employees_count: string | null
+          epf_code: string | null
           escalation_l1_email: string | null
           escalation_l1_name: string | null
           escalation_l2_email: string | null
           escalation_l2_name: string | null
           escalation_l3_email: string | null
           escalation_l3_name: string | null
+          esic_code: string | null
+          gem_seller_id: string | null
           gst: string | null
           id: string
           ifsc_code: string | null
+          iso_expiry: string | null
+          iso_number: string | null
+          land_border_equity: boolean | null
           local_content_percentage: string | null
+          mii_class: string | null
           msme: boolean
           nature_of_business: string | null
+          net_worth: string | null
+          nsic_number: string | null
           office_city: string | null
+          office_state: string | null
           pan: string | null
           past_projects: string[] | null
           startup: boolean
+          stqc_number: string | null
+          subletting_allowed: boolean | null
           support_email: string | null
           support_phone: string | null
           tan: string | null
+          turnover_y1: string | null
+          turnover_y2: string | null
+          turnover_y3: string | null
           udyam_number: string | null
           updated_at: string
           user_id: string | null
@@ -57,12 +80,16 @@ export type Database = {
           years_experience: string | null
         }
         Insert: {
+          additional_gsts?: string[] | null
           address?: string | null
           annual_turnover?: string | null
           authorized_signatory_designation?: string | null
           authorized_signatory_name?: string | null
           bank_account?: string | null
           bank_name?: string | null
+          bee_rating?: string | null
+          bis_number?: string | null
+          business_type?: string | null
           certifications?: string[] | null
           cin?: string | null
           company_name?: string
@@ -70,27 +97,46 @@ export type Database = {
           contact_person?: string | null
           contact_phone?: string | null
           created_at?: string
+          dd_bank?: string | null
+          dd_favouring?: string | null
           dpiit_number?: string | null
+          dsc_expiry?: string | null
+          duns_number?: string | null
           employees_count?: string | null
+          epf_code?: string | null
           escalation_l1_email?: string | null
           escalation_l1_name?: string | null
           escalation_l2_email?: string | null
           escalation_l2_name?: string | null
           escalation_l3_email?: string | null
           escalation_l3_name?: string | null
+          esic_code?: string | null
+          gem_seller_id?: string | null
           gst?: string | null
           id?: string
           ifsc_code?: string | null
+          iso_expiry?: string | null
+          iso_number?: string | null
+          land_border_equity?: boolean | null
           local_content_percentage?: string | null
+          mii_class?: string | null
           msme?: boolean
           nature_of_business?: string | null
+          net_worth?: string | null
+          nsic_number?: string | null
           office_city?: string | null
+          office_state?: string | null
           pan?: string | null
           past_projects?: string[] | null
           startup?: boolean
+          stqc_number?: string | null
+          subletting_allowed?: boolean | null
           support_email?: string | null
           support_phone?: string | null
           tan?: string | null
+          turnover_y1?: string | null
+          turnover_y2?: string | null
+          turnover_y3?: string | null
           udyam_number?: string | null
           updated_at?: string
           user_id?: string | null
@@ -98,12 +144,16 @@ export type Database = {
           years_experience?: string | null
         }
         Update: {
+          additional_gsts?: string[] | null
           address?: string | null
           annual_turnover?: string | null
           authorized_signatory_designation?: string | null
           authorized_signatory_name?: string | null
           bank_account?: string | null
           bank_name?: string | null
+          bee_rating?: string | null
+          bis_number?: string | null
+          business_type?: string | null
           certifications?: string[] | null
           cin?: string | null
           company_name?: string
@@ -111,27 +161,46 @@ export type Database = {
           contact_person?: string | null
           contact_phone?: string | null
           created_at?: string
+          dd_bank?: string | null
+          dd_favouring?: string | null
           dpiit_number?: string | null
+          dsc_expiry?: string | null
+          duns_number?: string | null
           employees_count?: string | null
+          epf_code?: string | null
           escalation_l1_email?: string | null
           escalation_l1_name?: string | null
           escalation_l2_email?: string | null
           escalation_l2_name?: string | null
           escalation_l3_email?: string | null
           escalation_l3_name?: string | null
+          esic_code?: string | null
+          gem_seller_id?: string | null
           gst?: string | null
           id?: string
           ifsc_code?: string | null
+          iso_expiry?: string | null
+          iso_number?: string | null
+          land_border_equity?: boolean | null
           local_content_percentage?: string | null
+          mii_class?: string | null
           msme?: boolean
           nature_of_business?: string | null
+          net_worth?: string | null
+          nsic_number?: string | null
           office_city?: string | null
+          office_state?: string | null
           pan?: string | null
           past_projects?: string[] | null
           startup?: boolean
+          stqc_number?: string | null
+          subletting_allowed?: boolean | null
           support_email?: string | null
           support_phone?: string | null
           tan?: string | null
+          turnover_y1?: string | null
+          turnover_y2?: string | null
+          turnover_y3?: string | null
           udyam_number?: string | null
           updated_at?: string
           user_id?: string | null
