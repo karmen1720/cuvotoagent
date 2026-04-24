@@ -183,10 +183,55 @@ All statutory declarations:
 - Authenticity of information
 - Acceptance of tender T&C
 
-===DOCUMENT: Documents Checklist===
-Complete checklist table: S.No | Document | Page No. | Status (Enclosed/To be furnished)
+===DOCUMENT: Bid Security Declaration===
+Bid Security Declaration in lieu of EMD as per GFR 2022 Rule 170 & DoE OM F.9/4/2020-PPD dated 12.11.2020. Include:
+- Reference to tender ID and date
+- Declaration that if bidder withdraws/modifies bid during validity, or fails to sign contract / furnish PBG if awarded, the bidder will be SUSPENDED from being eligible for bid submission in any contract with the buyer for a period of 1 (one) year from the date of notification
+- Acceptance of disqualification consequences
+- Authorized signatory with company seal
 
-Make each document PROFESSIONAL, COMPLETE, and READY FOR SUBMISSION with proper Indian government formatting. Use the exact company details provided.`
+===DOCUMENT: Board Resolution===
+Certified true copy of Board Resolution / Power of Attorney authorising the signatory to sign and submit the bid. Include:
+- Company name, CIN, registered office
+- Resolution number and date of board meeting
+- Names of board members present
+- Resolution text authorising [Authorized Signatory Name], [Designation] to sign, submit, negotiate and execute all bid documents, contracts, and related papers for the tender
+- Specimen signature block of authorised person
+- Certified by Company Secretary / Director with seal
+
+===DOCUMENT: Power of Attorney===
+Power of Attorney for Authorised Signatory on Rs.100 non-judicial stamp paper format. Include:
+- Executed by [Company Name] through its Board of Directors
+- In favour of [Authorized Signatory Name], [Designation], [PAN]
+- Powers granted: sign bid, submit documents, attend pre-bid meetings, negotiate, sign contract, receive payments, represent before authorities
+- Validity period
+- Notarisation block
+
+===DOCUMENT: Integrity Pact===
+Integrity Pact as per CVC guidelines (Office Order No. 41/12/07 dated 04.12.2007) between the bidder and the Principal (procuring entity). Include:
+- Section 1: Commitments of the Principal (no demand for bribes, equal treatment)
+- Section 2: Commitments of the Bidder (no bribes, no collusion, disclose payments to agents, no misuse of confidential info)
+- Section 3: Disqualification from tender process and exclusion from future contracts
+- Section 4: Compensation for damages
+- Section 5: Previous transgressions disclosure
+- Section 6: Equal treatment of all bidders / sub-contractors
+- Section 7: Criminal charges against violating bidders
+- Section 8: Independent External Monitor
+- Section 9: Pact duration
+- Signature blocks for Principal and Bidder
+
+===DOCUMENT: EMD Undertaking===
+EMD / Tender Fee Exemption Undertaking for MSME / Startup / NSIC registered entities. Include:
+- Reference to MSME Udyam / NSIC / DPIIT Startup registration number with date and validity
+- Reference to relevant exemption notifications (MSME Procurement Policy 2012, DIPP Notification G.S.R. 501(E))
+- Declaration claiming exemption from EMD and Tender Document Fee
+- Undertaking to refund any benefit availed if registration is found invalid
+- Authorised signatory with seal
+
+===DOCUMENT: Documents Checklist===
+Complete checklist table: S.No | Document | Page No. | Status (Enclosed/To be furnished). Include all 18 documents generated above.
+
+Make each document PROFESSIONAL, COMPLETE, and READY FOR SUBMISSION with proper Indian government formatting per GFR 2017/2022, CVC, and DoE guidelines. Use the exact company details provided.`
           }
         ],
         reasoning: { effort: "xhigh" }
