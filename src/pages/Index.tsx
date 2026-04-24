@@ -115,14 +115,21 @@ const Index = () => {
     }
   };
 
-  const handleProcess = async () => {
-    if (!pdfFile) {
-      toast({ title: "Please upload a tender PDF first", variant: "destructive" });
+  const [pastedTenderText, setPastedTenderText] = useState<string>("");
+
+  const handleProcess = async (overrideText?: string) => {
+    if (!pdfFile && !overrideText && !pastedTenderText) {
+      toast({ title: "Please upload a tender PDF or paste tender text", variant: "destructive" });
       return;
     }
     setIsAnalyzing(true);
     try {
-      const pdfText = await extractTextFromPdf(pdfFile);
+      const pdfText = overrideText || pastedTenderText || await extractTextFromPdf(pdfFile!);
+      if (!pdfText || pdfText.length < 200) {
+        toast({ title: "Tender text too short", description: "Please paste the tender text manually using the box below.", variant: "destructive" });
+        setIsAnalyzing(false);
+        return;
+      }
       const result = await analyzeTender(pdfText, company);
 
       setRequirements(result.requirements);
@@ -234,6 +241,7 @@ const Index = () => {
                     onExcelUpload={handleExcelUpload}
                     onPdfUpload={(file) => setPdfFile(file)}
                     onSheetUrl={handleSheetUrl}
+                    onPasteText={(t) => { setPastedTenderText(t); toast({ title: "Tender text saved", description: "Click Process to analyze." }); }}
                     excelFile={excelFile}
                     pdfFile={pdfFile}
                   />
@@ -255,9 +263,9 @@ const Index = () => {
                   )}
 
                   {/* Process button */}
-                  {pdfFile && !requirements && (
+                  {(pdfFile || pastedTenderText) && !requirements && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                      <Button variant="hero" className="w-full" onClick={handleProcess} disabled={isAnalyzing}>
+                      <Button variant="hero" className="w-full" onClick={() => handleProcess()} disabled={isAnalyzing}>
                         {isAnalyzing ? (
                           <>
                             <Loader2 className="w-4 h-4 animate-spin" />
