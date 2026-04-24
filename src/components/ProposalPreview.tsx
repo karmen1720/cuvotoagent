@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Copy, Check, ChevronDown, ChevronRight, FileDown } from "lucide-react";
+import { FileText, Download, Copy, Check, ChevronDown, ChevronRight, FileDown, FileType2 } from "lucide-react";
 import { exportDocumentToPdf, exportAllDocumentsToPdf } from "@/lib/pdf-export";
+import { exportDocumentToDocx, exportAllDocumentsToDocx } from "@/lib/docx-export";
 import type { CompanyData } from "@/components/CompanyProfile";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProposalPreviewProps {
   text: string;
@@ -78,6 +80,17 @@ function renderMarkdown(content: string) {
 const DocumentCard = ({ section, index, company }: { section: DocumentSection; index: number; company?: CompanyData }) => {
   const [expanded, setExpanded] = useState(index === 0);
   const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+
+  const companyHeader = company ? {
+    company_name: company.company_name,
+    address: company.address,
+    contact_email: company.contact_email,
+    contact_phone: company.contact_phone,
+    gst: company.gst,
+    pan: company.pan,
+    cin: company.cin,
+  } : undefined;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(section.content);
@@ -95,16 +108,14 @@ const DocumentCard = ({ section, index, company }: { section: DocumentSection; i
     URL.revokeObjectURL(url);
   };
 
-  const handleDownloadPdf = () => {
-    exportDocumentToPdf(section.name, section.content, company ? {
-      company_name: company.company_name,
-      address: company.address,
-      contact_email: company.contact_email,
-      contact_phone: company.contact_phone,
-      gst: company.gst,
-      pan: company.pan,
-      cin: company.cin,
-    } : undefined);
+  const handleDownloadPdf = () => exportDocumentToPdf(section.name, section.content, companyHeader);
+
+  const handleDownloadDocx = async () => {
+    try {
+      await exportDocumentToDocx(section.name, section.content, companyHeader);
+    } catch (e: any) {
+      toast({ title: "DOCX export failed", description: e.message, variant: "destructive" });
+    }
   };
 
   return (
@@ -125,6 +136,9 @@ const DocumentCard = ({ section, index, company }: { section: DocumentSection; i
           <Button variant="ghost" size="icon" className="h-7 w-7" title="Download PDF" onClick={handleDownloadPdf}>
             <FileDown className="w-3 h-3" />
           </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="Download DOCX" onClick={handleDownloadDocx}>
+            <FileType2 className="w-3 h-3" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-7 w-7" title="Download Markdown" onClick={handleDownloadMd}>
             <Download className="w-3 h-3" />
           </Button>
@@ -142,6 +156,7 @@ const DocumentCard = ({ section, index, company }: { section: DocumentSection; i
 const ProposalPreview = ({ text, company }: ProposalPreviewProps) => {
   const sections = parseDocuments(text);
   const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
 
   const companyHeader = company ? {
     company_name: company.company_name,
@@ -153,8 +168,14 @@ const ProposalPreview = ({ text, company }: ProposalPreviewProps) => {
     cin: company.cin,
   } : undefined;
 
-  const handleDownloadAllPdf = () => {
-    exportAllDocumentsToPdf(text, sections, companyHeader);
+  const handleDownloadAllPdf = () => exportAllDocumentsToPdf(text, sections, companyHeader);
+
+  const handleDownloadAllDocx = async () => {
+    try {
+      await exportAllDocumentsToDocx(sections, companyHeader);
+    } catch (e: any) {
+      toast({ title: "DOCX export failed", description: e.message, variant: "destructive" });
+    }
   };
 
   const handleCopyAll = async () => {
@@ -172,14 +193,18 @@ const ProposalPreview = ({ text, company }: ProposalPreviewProps) => {
             Generated Documents ({sections.length})
           </h3>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleCopyAll}>
             {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
             {copied ? "Copied" : "Copy All"}
           </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleDownloadAllDocx}>
+            <FileType2 className="w-3 h-3" />
+            All DOCX
+          </Button>
           <Button variant="accent" size="sm" className="gap-1.5 text-xs" onClick={handleDownloadAllPdf}>
             <FileDown className="w-3 h-3" />
-            Download All PDF
+            All PDF
           </Button>
         </div>
       </div>
