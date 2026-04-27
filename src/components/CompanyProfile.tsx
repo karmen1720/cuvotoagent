@@ -249,20 +249,24 @@ const CompanyProfile = ({ company, onEdit }: CompanyProfileProps) => {
   const [newGst, setNewGst] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const isWarningOnly = (key: string, msg: string) =>
+    (key === "dsc_expiry" || key === "iso_expiry") && msg.startsWith("⚠");
+
   const handleSave = () => {
     // Validate all fields with regex
     const newErrors: Record<string, string> = {};
+    const blocking: Record<string, string> = {};
     for (const grp of fieldGroups) {
       for (const f of grp.fields) {
         const err = validate(f.key, (draft as any)[f.key] || "");
-        if (err) newErrors[f.key] = err;
+        if (err) {
+          newErrors[f.key] = err;
+          if (!isWarningOnly(f.key, err)) blocking[f.key] = err;
+        }
       }
     }
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-    setErrors({});
+    setErrors(newErrors);
+    if (Object.keys(blocking).length > 0) return;
     onEdit(draft);
     setEditing(false);
   };
