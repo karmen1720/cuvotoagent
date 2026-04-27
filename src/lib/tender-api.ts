@@ -19,6 +19,25 @@ interface AnalyzeResult {
   } | null;
 }
 
+async function extractFnError(error: any, fallback: string): Promise<string> {
+  try {
+    const ctx = error?.context;
+    if (ctx && typeof ctx.json === "function") {
+      const body = await ctx.json();
+      if (body?.error) return body.error;
+    } else if (ctx && typeof ctx.text === "function") {
+      const txt = await ctx.text();
+      try {
+        const body = JSON.parse(txt);
+        if (body?.error) return body.error;
+      } catch {
+        if (txt) return txt;
+      }
+    }
+  } catch {}
+  return error?.message || fallback;
+}
+
 export async function analyzeTender(
   pdfText: string,
   companyProfile: CompanyData
@@ -27,7 +46,7 @@ export async function analyzeTender(
     body: { pdfText, companyProfile },
   });
 
-  if (error) throw new Error(error.message || "Failed to analyze tender");
+  if (error) throw new Error(await extractFnError(error, "Failed to analyze tender"));
   if (data?.error) throw new Error(data.error);
   return data as AnalyzeResult;
 }
@@ -42,7 +61,7 @@ export async function generateProposal(
     body: { tenderTitle, requirements, eligibility, companyProfile },
   });
 
-  if (error) throw new Error(error.message || "Failed to generate proposal");
+  if (error) throw new Error(await extractFnError(error, "Failed to generate proposal"));
   if (data?.error) throw new Error(data.error);
   return data.proposal;
 }
