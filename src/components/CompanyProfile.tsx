@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { validate } from "@/lib/indian-validators";
+import { validate, expiryStatus } from "@/lib/indian-validators";
 
 export interface CompanyData {
   company_name: string;
