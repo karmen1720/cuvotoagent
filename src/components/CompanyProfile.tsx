@@ -386,11 +386,11 @@ const CompanyProfile = ({ company, onEdit }: CompanyProfileProps) => {
                         value={(draft as any)[field.key] || ""}
                         onChange={(e) => updateField(field.key, e.target.value)}
                         placeholder={(field as any).placeholder || ""}
-                        className={`mt-1 text-sm ${errors[field.key] ? "border-destructive" : ""}`}
+                        className={`mt-1 text-sm ${errors[field.key] ? (isWarningOnly(field.key, errors[field.key]) ? "border-yellow-500" : "border-destructive") : ""}`}
                       />
                     )}
                     {errors[field.key] && (
-                      <p className="text-xs text-destructive mt-1">{errors[field.key]}</p>
+                      <p className={`text-xs mt-1 ${isWarningOnly(field.key, errors[field.key]) ? "text-yellow-600 dark:text-yellow-500" : "text-destructive"}`}>{errors[field.key]}</p>
                     )}
                   </div>
                 ))}
