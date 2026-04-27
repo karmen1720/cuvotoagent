@@ -15,11 +15,37 @@ export const PATTERNS = {
   duns: /^[0-9]{9}$/,
   gemSeller: /^[A-Z0-9]{6,20}$/i,
   bee: /^[1-5]$/,
+  // DD/MM/YYYY date
+  dateDMY: /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/(19|20)[0-9]{2}$/,
+  year4: /^(19|20)[0-9]{2}$/,
+  percent: /^(100|[1-9]?[0-9])(\.[0-9]{1,2})?$/,
+  miiClass: /^(class[\s-]?i{1,2}|non[\s-]?local)$/i,
+  bankAccount: /^[0-9]{9,18}$/,
 };
 
 export interface ValidationIssue {
   field: string;
   message: string;
+}
+
+// Parse DD/MM/YYYY safely
+export function parseDMY(value: string): Date | null {
+  if (!PATTERNS.dateDMY.test(value)) return null;
+  const [d, m, y] = value.split("/").map(Number);
+  const dt = new Date(y, m - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
+  return dt;
+}
+
+// Returns 'expired' | 'expiring' (within 60 days) | 'valid' | null (invalid format)
+export function expiryStatus(value: string): "expired" | "expiring" | "valid" | null {
+  const dt = parseDMY(value);
+  if (!dt) return null;
+  const now = new Date();
+  const diffDays = Math.floor((dt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return "expired";
+  if (diffDays <= 60) return "expiring";
+  return "valid";
 }
 
 export function validate(field: string, value: string): string | null {
@@ -42,6 +68,8 @@ export function validate(field: string, value: string): string | null {
       return PATTERNS.dpiit.test(v) ? null : "DPIIT format: DIPP12345";
     case "duns_number":
       return PATTERNS.duns.test(value) ? null : "DUNS must be 9 digits";
+    case "bank_account":
+      return PATTERNS.bankAccount.test(value.replace(/\s/g, "")) ? null : "Account no. must be 9-18 digits";
     case "contact_email":
     case "support_email":
     case "escalation_l1_email":
@@ -53,6 +81,25 @@ export function validate(field: string, value: string): string | null {
       return PATTERNS.phoneIN.test(value.replace(/\s/g, "")) ? null : "Indian phone: +91XXXXXXXXXX";
     case "bee_rating":
       return PATTERNS.bee.test(value) ? null : "BEE star rating 1-5";
+    case "year_of_incorporation": {
+      if (!PATTERNS.year4.test(value)) return "Year must be 4 digits (e.g. 2020)";
+      const y = Number(value);
+      const cy = new Date().getFullYear();
+      if (y < 1900 || y > cy) return `Year must be between 1900 and ${cy}`;
+      return null;
+    }
+    case "local_content_percentage":
+      return PATTERNS.percent.test(value) ? null : "Enter percent 0-100";
+    case "mii_class":
+      return PATTERNS.miiClass.test(value.trim()) ? null : "Must be Class-I, Class-II or Non-local";
+    case "dsc_expiry":
+    case "iso_expiry": {
+      const status = expiryStatus(value);
+      if (status === null) return "Use DD/MM/YYYY format";
+      if (status === "expired") return "⚠ Expired — renew before bidding";
+      if (status === "expiring") return "⚠ Expiring within 60 days — renew soon";
+      return null;
+    }
     default:
       return null;
   }

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { validate } from "@/lib/indian-validators";
+import { validate, expiryStatus } from "@/lib/indian-validators";
 
 export interface CompanyData {
   company_name: string;
@@ -249,20 +249,24 @@ const CompanyProfile = ({ company, onEdit }: CompanyProfileProps) => {
   const [newGst, setNewGst] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const isWarningOnly = (key: string, msg: string) =>
+    (key === "dsc_expiry" || key === "iso_expiry") && msg.startsWith("⚠");
+
   const handleSave = () => {
     // Validate all fields with regex
     const newErrors: Record<string, string> = {};
+    const blocking: Record<string, string> = {};
     for (const grp of fieldGroups) {
       for (const f of grp.fields) {
         const err = validate(f.key, (draft as any)[f.key] || "");
-        if (err) newErrors[f.key] = err;
+        if (err) {
+          newErrors[f.key] = err;
+          if (!isWarningOnly(f.key, err)) blocking[f.key] = err;
+        }
       }
     }
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-    setErrors({});
+    setErrors(newErrors);
+    if (Object.keys(blocking).length > 0) return;
     onEdit(draft);
     setEditing(false);
   };
@@ -382,11 +386,11 @@ const CompanyProfile = ({ company, onEdit }: CompanyProfileProps) => {
                         value={(draft as any)[field.key] || ""}
                         onChange={(e) => updateField(field.key, e.target.value)}
                         placeholder={(field as any).placeholder || ""}
-                        className={`mt-1 text-sm ${errors[field.key] ? "border-destructive" : ""}`}
+                        className={`mt-1 text-sm ${errors[field.key] ? (isWarningOnly(field.key, errors[field.key]) ? "border-yellow-500" : "border-destructive") : ""}`}
                       />
                     )}
                     {errors[field.key] && (
-                      <p className="text-xs text-destructive mt-1">{errors[field.key]}</p>
+                      <p className={`text-xs mt-1 ${isWarningOnly(field.key, errors[field.key]) ? "text-yellow-600 dark:text-yellow-500" : "text-destructive"}`}>{errors[field.key]}</p>
                     )}
                   </div>
                 ))}
@@ -515,6 +519,39 @@ const CompanyProfile = ({ company, onEdit }: CompanyProfileProps) => {
         {company.years_experience && <p><span className="font-medium text-foreground">Experience:</span> {company.years_experience}</p>}
         {company.authorized_signatory_name && <p><span className="font-medium text-foreground">Signatory:</span> {company.authorized_signatory_name}</p>}
       </div>
+
+      {/* Expiry alerts */}
+      {(() => {
+        const alerts: { label: string; status: "expired" | "expiring"; date: string }[] = [];
+        const checks: [string, string][] = [
+          ["DSC", company.dsc_expiry],
+          ["ISO", company.iso_expiry],
+        ];
+        for (const [label, val] of checks) {
+          if (!val) continue;
+          const s = expiryStatus(val);
+          if (s === "expired" || s === "expiring") alerts.push({ label, status: s, date: val });
+        }
+        if (alerts.length === 0) return null;
+        return (
+          <div className="mt-3 space-y-1.5">
+            {alerts.map((a) => (
+              <div
+                key={a.label}
+                className={`flex items-center gap-2 rounded-md border p-2 text-xs ${
+                  a.status === "expired"
+                    ? "border-destructive/30 bg-destructive/10 text-destructive"
+                    : "border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-500"
+                }`}
+              >
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="font-medium">{a.label}</span>
+                <span>{a.status === "expired" ? "expired on" : "expires on"} {a.date} — renew before bidding</span>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {completeness < 60 && (
         <button
