@@ -520,6 +520,39 @@ const CompanyProfile = ({ company, onEdit }: CompanyProfileProps) => {
         {company.authorized_signatory_name && <p><span className="font-medium text-foreground">Signatory:</span> {company.authorized_signatory_name}</p>}
       </div>
 
+      {/* Expiry alerts */}
+      {(() => {
+        const alerts: { label: string; status: "expired" | "expiring"; date: string }[] = [];
+        const checks: [string, string][] = [
+          ["DSC", company.dsc_expiry],
+          ["ISO", company.iso_expiry],
+        ];
+        for (const [label, val] of checks) {
+          if (!val) continue;
+          const s = expiryStatus(val);
+          if (s === "expired" || s === "expiring") alerts.push({ label, status: s, date: val });
+        }
+        if (alerts.length === 0) return null;
+        return (
+          <div className="mt-3 space-y-1.5">
+            {alerts.map((a) => (
+              <div
+                key={a.label}
+                className={`flex items-center gap-2 rounded-md border p-2 text-xs ${
+                  a.status === "expired"
+                    ? "border-destructive/30 bg-destructive/10 text-destructive"
+                    : "border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-500"
+                }`}
+              >
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="font-medium">{a.label}</span>
+                <span>{a.status === "expired" ? "expired on" : "expires on"} {a.date} — renew before bidding</span>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       {completeness < 60 && (
         <button
           onClick={() => { setDraft(company); setEditing(true); }}
