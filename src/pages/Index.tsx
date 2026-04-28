@@ -1,7 +1,17 @@
 import { useState, useRef, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, CloudLightning, Loader2, AlertCircle, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CloudLightning, Loader2, AlertCircle, AlertTriangle, CheckCircle2, LogOut, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import HeroSection from "@/components/HeroSection";
 import CompanyProfile, { CompanyData, DEFAULT_COMPANY } from "@/components/CompanyProfile";
@@ -18,6 +28,8 @@ import { saveCompanyProfile, loadCompanyProfile } from "@/lib/company-storage";
 
 const Index = () => {
   const { toast } = useToast();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [showDashboard, setShowDashboard] = useState(false);
   const [company, setCompany] = useState<CompanyData>(DEFAULT_COMPANY);
   const [criteria, setCriteria] = useState<CriteriaConfig>(DEFAULT_CRITERIA);
@@ -208,6 +220,37 @@ const Index = () => {
                 Home
               </Button>
             )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-primary text-accent-foreground flex items-center justify-center text-xs font-semibold uppercase hover:opacity-90 transition"
+                  aria-label="Account menu"
+                >
+                  {(user?.email?.[0] || "U").toUpperCase()}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium truncate">{user?.name || "User"}</span>
+                    <span className="text-xs text-muted-foreground truncate">{user?.email}</span>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="cursor-pointer">
+                    <UserIcon className="w-4 h-4 mr-2" /> Profile & Company
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => { logout(); navigate("/login", { replace: true }); }}
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                >
+                  <LogOut className="w-4 h-4 mr-2" /> Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
