@@ -15,7 +15,8 @@ const Login = () => {
   const location = useLocation();
   const { toast } = useToast();
 
-  const [email, setEmail] = useState("");
+  const prefilledEmail = (location.state as any)?.email || (typeof window !== "undefined" ? localStorage.getItem("cuvoto_pending_email") || "" : "");
+  const [email, setEmail] = useState(prefilledEmail);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
