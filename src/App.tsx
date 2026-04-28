@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index.tsx";
 import Login from "./pages/Login.tsx";
+import Register from "./pages/Register.tsx";
 import Profile from "./pages/Profile.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -21,6 +22,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route
               path="/"
               element={
