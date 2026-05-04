@@ -29,7 +29,7 @@ const STRENGTH = [
 ];
 
 const Register = () => {
-  const { user } = useAuth();
+  const { user, signUpWithPassword, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
@@ -75,13 +75,12 @@ const Register = () => {
 
     setSubmitting(true);
     try {
-      try {
-        localStorage.setItem("cuvoto_pending_email", email);
-        if (name) localStorage.setItem("cuvoto_pending_name", name);
-      } catch {}
-      // Brief delay so the user sees feedback
-      await new Promise((r) => setTimeout(r, 600));
+      await signUpWithPassword(email, password, name || undefined);
+      try { localStorage.setItem("cuvoto_pending_email", email); } catch {}
       setSuccess(true);
+    } catch (err: any) {
+      // surface error to user
+      alert(err?.message || "Sign up failed");
     } finally {
       setSubmitting(false);
     }

@@ -1,71 +1,85 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-
-export interface AuthUser {
-  email: string;
-  name?: string;
-  loginAt: string;
-}
+import type { Session, User } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 
 interface AuthContextValue {
-  user: AuthUser | null;
+  user: User | null;
+  session: Session | null;
   loading: boolean;
-  login: (email: string, password?: string, remember?: boolean) => Promise<void>;
-  loginWithProvider: (provider: "google" | "microsoft") => Promise<void>;
-  logout: () => void;
+  signInWithPassword: (email: string, password: string) => Promise<void>;
+  signUpWithPassword: (email: string, password: string, fullName?: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  resetPasswordForEmail: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const STORAGE_KEY = "cuvoto_auth_user";
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(STORAGE_KEY);
-      if (raw) setUser(JSON.parse(raw));
-    } catch {}
-    setLoading(false);
+    // CRITICAL: set up listener BEFORE getSession
+    const { data: sub } = supabase.auth.onAuthStateChange((_evt, s) => {
+      setSession(s);
+      setUser(s?.user ?? null);
+    });
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
+      setLoading(false);
+    });
+    return () => sub.subscription.unsubscribe();
   }, []);
 
-  const persist = (u: AuthUser, remember: boolean) => {
-    const store = remember ? localStorage : sessionStorage;
-    store.setItem(STORAGE_KEY, JSON.stringify(u));
-    // clear the other store
-    (remember ? sessionStorage : localStorage).removeItem(STORAGE_KEY);
+  const signInWithPassword = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
   };
 
-  const login = async (email: string, _password?: string, remember = true) => {
-    // Local-only auth — accepts any credentials for testing.
-    const u: AuthUser = {
+  const signUpWithPassword = async (email: string, password: string, fullName?: string) => {
+    const { error } = await supabase.auth.signUp({
       email,
-      name: email.split("@")[0],
-      loginAt: new Date().toISOString(),
-    };
-    persist(u, remember);
-    setUser(u);
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+        data: fullName ? { full_name: fullName } : undefined,
+      },
+    });
+    if (error) throw error;
   };
 
-  const loginWithProvider = async (provider: "google" | "microsoft") => {
-    const u: AuthUser = {
-      email: `user@${provider}.com`,
-      name: `${provider[0].toUpperCase()}${provider.slice(1)} User`,
-      loginAt: new Date().toISOString(),
-    };
-    persist(u, true);
-    setUser(u);
+  const signInWithGoogle = async () => {
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) throw result.error instanceof Error ? result.error : new Error(String(result.error));
   };
 
-  const logout = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    sessionStorage.removeItem(STORAGE_KEY);
+  const resetPasswordForEmail = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw error;
+  };
+
+  const updatePassword = async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw error;
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
     setUser(null);
+    setSession(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginWithProvider, logout }}>
+    <AuthContext.Provider value={{ user, session, loading, signInWithPassword, signUpWithPassword, signInWithGoogle, resetPasswordForEmail, updatePassword, signOut }}>
       {children}
     </AuthContext.Provider>
   );

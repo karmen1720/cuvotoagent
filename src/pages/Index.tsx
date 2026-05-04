@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
+import OrgSwitcher from "@/components/OrgSwitcher";
 import { useToast } from "@/hooks/use-toast";
 import HeroSection from "@/components/HeroSection";
 import CompanyProfile, { CompanyData, DEFAULT_COMPANY } from "@/components/CompanyProfile";
@@ -28,8 +29,9 @@ import { saveCompanyProfile, loadCompanyProfile } from "@/lib/company-storage";
 
 const Index = () => {
   const { toast } = useToast();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const userDisplayName = (user?.user_metadata as any)?.full_name || (user?.user_metadata as any)?.name || user?.email?.split("@")[0];
   const [showDashboard, setShowDashboard] = useState(false);
   const [company, setCompany] = useState<CompanyData>(DEFAULT_COMPANY);
   const [criteria, setCriteria] = useState<CriteriaConfig>(DEFAULT_CRITERIA);
@@ -204,9 +206,12 @@ const Index = () => {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CloudLightning className="w-6 h-6 text-accent" />
-            <span className="font-display font-bold text-foreground text-lg">Cuvoto Tender AI</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <CloudLightning className="w-6 h-6 text-accent" />
+              <span className="font-display font-bold text-foreground text-lg hidden sm:inline">Cuvoto</span>
+            </div>
+            <div className="hidden sm:block"><OrgSwitcher /></div>
           </div>
           <div className="flex items-center gap-2">
             {showDashboard && requirements && (
@@ -232,7 +237,7 @@ const Index = () => {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col">
-                    <span className="text-sm font-medium truncate">{user?.name || "User"}</span>
+                    <span className="text-sm font-medium truncate">{userDisplayName || "User"}</span>
                     <span className="text-xs text-muted-foreground truncate">{user?.email}</span>
                   </div>
                 </DropdownMenuLabel>
@@ -242,9 +247,14 @@ const Index = () => {
                     <UserIcon className="w-4 h-4 mr-2" /> Profile & Company
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/members" className="cursor-pointer">
+                    <UserIcon className="w-4 h-4 mr-2" /> Members & roles
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => { logout(); navigate("/login", { replace: true }); }}
+                  onClick={async () => { await signOut(); navigate("/login", { replace: true }); }}
                   className="cursor-pointer text-destructive focus:text-destructive"
                 >
                   <LogOut className="w-4 h-4 mr-2" /> Log out
