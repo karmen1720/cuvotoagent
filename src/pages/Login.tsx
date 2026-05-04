@@ -124,27 +124,15 @@ const Login = () => {
             <p className="text-white/60 mt-1">Please enter your details to sign in.</p>
           </div>
 
-          {/* OAuth buttons */}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => handleProvider("google")}
-              disabled={submitting}
-              className="flex items-center justify-center gap-2 h-11 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 transition text-white text-sm font-medium disabled:opacity-50"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="#fff" d="M21.35 11.1h-9.17v2.91h5.27c-.23 1.49-1.71 4.36-5.27 4.36-3.18 0-5.77-2.63-5.77-5.87s2.59-5.87 5.77-5.87c1.81 0 3.02.77 3.71 1.43l2.53-2.43C16.9 4.18 14.74 3.2 12.18 3.2 6.95 3.2 2.7 7.45 2.7 12.5s4.25 9.3 9.48 9.3c5.47 0 9.1-3.84 9.1-9.25 0-.62-.07-1.1-.13-1.45z"/></svg>
-              Google
-            </button>
-            <button
-              type="button"
-              onClick={() => handleProvider("microsoft")}
-              disabled={submitting}
-              className="flex items-center justify-center gap-2 h-11 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 transition text-white text-sm font-medium disabled:opacity-50"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="#f25022" d="M1 1h10v10H1z"/><path fill="#7fba00" d="M13 1h10v10H13z"/><path fill="#00a4ef" d="M1 13h10v10H1z"/><path fill="#ffb900" d="M13 13h10v10H13z"/></svg>
-              Microsoft
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => handleProvider("google")}
+            disabled={submitting}
+            className="w-full flex items-center justify-center gap-2 h-11 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 transition text-white text-sm font-medium disabled:opacity-50"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="#fff" d="M21.35 11.1h-9.17v2.91h5.27c-.23 1.49-1.71 4.36-5.27 4.36-3.18 0-5.77-2.63-5.77-5.87s2.59-5.87 5.77-5.87c1.81 0 3.02.77 3.71 1.43l2.53-2.43C16.9 4.18 14.74 3.2 12.18 3.2 6.95 3.2 2.7 7.45 2.7 12.5s4.25 9.3 9.48 9.3c5.47 0 9.1-3.84 9.1-9.25 0-.62-.07-1.1-.13-1.45z"/></svg>
+            Continue with Google
+          </button>
 
           <div className="flex items-center gap-3 text-[11px] tracking-widest text-white/40">
             <div className="h-px bg-white/15 flex-1" />
