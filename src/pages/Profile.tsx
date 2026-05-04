@@ -11,7 +11,7 @@ import { saveCompanyProfile } from "@/lib/company-storage";
 import { useToast } from "@/hooks/use-toast";
 
 const Profile = () => {
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [company, setCompany] = useState<CompanyData>(DEFAULT_COMPANY);
@@ -23,10 +23,13 @@ const Profile = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut();
     navigate("/login", { replace: true });
   };
+
+  const fullName = (user?.user_metadata as any)?.full_name || (user?.user_metadata as any)?.name;
+  const lastSignIn = user?.last_sign_in_at;
 
   const handleEdit = async (updated: CompanyData) => {
     setCompany(updated);
@@ -66,17 +69,17 @@ const Profile = () => {
               <Mail className="w-4 h-4 text-muted-foreground" />
               <span className="text-foreground">{user?.email}</span>
             </div>
-            {user?.name && (
+            {fullName && (
               <div className="flex items-center gap-3">
                 <Building2 className="w-4 h-4 text-muted-foreground" />
-                <span className="text-foreground">{user.name}</span>
+                <span className="text-foreground">{fullName}</span>
               </div>
             )}
-            {user?.loginAt && (
+            {lastSignIn && (
               <div className="flex items-center gap-3">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
                 <span className="text-muted-foreground">
-                  Signed in {new Date(user.loginAt).toLocaleString()}
+                  Signed in {new Date(lastSignIn).toLocaleString()}
                 </span>
               </div>
             )}

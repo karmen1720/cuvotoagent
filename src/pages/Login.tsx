@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import loginBg from "@/assets/login-bg.jpg";
 
 const Login = () => {
-  const { user, login, loginWithProvider } = useAuth();
+  const { user, signInWithPassword, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -28,28 +28,28 @@ const Login = () => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!email) {
-      toast({ title: "Email required", variant: "destructive" });
+    if (!email || !password) {
+      toast({ title: "Email and password required", variant: "destructive" });
       return;
     }
     setSubmitting(true);
     try {
-      await login(email, password, remember);
+      await signInWithPassword(email, password);
       toast({ title: "Welcome back!", description: "Signed in successfully." });
       navigate(from, { replace: true });
     } catch (err: any) {
-      toast({ title: "Sign in failed", description: err.message, variant: "destructive" });
+      toast({ title: "Sign in failed", description: err.message || "Check your credentials", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleProvider = async (provider: "google" | "microsoft") => {
+  const handleProvider = async (provider: "google") => {
     setSubmitting(true);
     try {
-      await loginWithProvider(provider);
-      toast({ title: `Signed in with ${provider}` });
-      navigate(from, { replace: true });
+      await signInWithGoogle();
+    } catch (err: any) {
+      toast({ title: `${provider} sign-in failed`, description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -172,7 +172,7 @@ const Login = () => {
             <div>
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-semibold tracking-widest text-white/70">PASSWORD</label>
-                <Link to="/login" className="text-xs text-accent hover:underline">Forgot password?</Link>
+                <Link to="/forgot-password" className="text-xs text-accent hover:underline">Forgot password?</Link>
               </div>
               <div className="relative mt-2">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
