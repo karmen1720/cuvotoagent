@@ -14,6 +14,8 @@ import ResetPassword from "./pages/ResetPassword.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
 import Members from "./pages/Members.tsx";
 import Profile from "./pages/Profile.tsx";
+import Tenders from "./pages/Tenders.tsx";
+import TenderDetail from "./pages/TenderDetail.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
