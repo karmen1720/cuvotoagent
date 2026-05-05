@@ -356,6 +356,137 @@ export type Database = {
         }
         Relationships: []
       }
+      proposals: {
+        Row: {
+          content: string | null
+          created_at: string
+          created_by: string
+          id: string
+          metadata: Json | null
+          organization_id: string
+          reviewer_id: string | null
+          status: Database["public"]["Enums"]["proposal_status"]
+          tender_id: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          metadata?: Json | null
+          organization_id: string
+          reviewer_id?: string | null
+          status?: Database["public"]["Enums"]["proposal_status"]
+          tender_id: string
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          metadata?: Json | null
+          organization_id?: string
+          reviewer_id?: string | null
+          status?: Database["public"]["Enums"]["proposal_status"]
+          tender_id?: string
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_tender_id_fkey"
+            columns: ["tender_id"]
+            isOneToOne: false
+            referencedRelation: "tenders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenders: {
+        Row: {
+          assignee_id: string | null
+          buyer: string | null
+          category: string | null
+          created_at: string
+          created_by: string
+          department: string | null
+          eligibility: Json | null
+          emd_amount: number | null
+          estimated_value: number | null
+          id: string
+          notes: string | null
+          opening_date: string | null
+          organization_id: string
+          priority: Database["public"]["Enums"]["tender_priority"]
+          publish_date: string | null
+          raw_requirements: Json | null
+          reference_no: string | null
+          source_url: string | null
+          stage: Database["public"]["Enums"]["tender_stage"]
+          submission_deadline: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          buyer?: string | null
+          category?: string | null
+          created_at?: string
+          created_by: string
+          department?: string | null
+          eligibility?: Json | null
+          emd_amount?: number | null
+          estimated_value?: number | null
+          id?: string
+          notes?: string | null
+          opening_date?: string | null
+          organization_id: string
+          priority?: Database["public"]["Enums"]["tender_priority"]
+          publish_date?: string | null
+          raw_requirements?: Json | null
+          reference_no?: string | null
+          source_url?: string | null
+          stage?: Database["public"]["Enums"]["tender_stage"]
+          submission_deadline?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          buyer?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string
+          department?: string | null
+          eligibility?: Json | null
+          emd_amount?: number | null
+          estimated_value?: number | null
+          id?: string
+          notes?: string | null
+          opening_date?: string | null
+          organization_id?: string
+          priority?: Database["public"]["Enums"]["tender_priority"]
+          publish_date?: string | null
+          raw_requirements?: Json | null
+          reference_no?: string | null
+          source_url?: string | null
+          stage?: Database["public"]["Enums"]["tender_stage"]
+          submission_deadline?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -421,6 +552,21 @@ export type Database = {
         | "viewer"
       invitation_status: "pending" | "accepted" | "revoked" | "expired"
       plan_tier: "trial" | "starter" | "professional" | "enterprise"
+      proposal_status:
+        | "draft"
+        | "in_review"
+        | "approved"
+        | "submitted"
+        | "archived"
+      tender_priority: "low" | "medium" | "high" | "urgent"
+      tender_stage:
+        | "new"
+        | "screening"
+        | "bid_prep"
+        | "submitted"
+        | "won"
+        | "lost"
+        | "dropped"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -558,6 +704,23 @@ export const Constants = {
       ],
       invitation_status: ["pending", "accepted", "revoked", "expired"],
       plan_tier: ["trial", "starter", "professional", "enterprise"],
+      proposal_status: [
+        "draft",
+        "in_review",
+        "approved",
+        "submitted",
+        "archived",
+      ],
+      tender_priority: ["low", "medium", "high", "urgent"],
+      tender_stage: [
+        "new",
+        "screening",
+        "bid_prep",
+        "submitted",
+        "won",
+        "lost",
+        "dropped",
+      ],
     },
   },
 } as const
