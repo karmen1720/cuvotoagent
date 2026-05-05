@@ -214,6 +214,9 @@ const Index = () => {
             <div className="hidden sm:block"><OrgSwitcher /></div>
           </div>
           <div className="flex items-center gap-2">
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+              <Link to="/tenders">Workspace</Link>
+            </Button>
             {showDashboard && requirements && (
               <Button variant="ghost" size="sm" onClick={handleReset}>
                 New Tender
