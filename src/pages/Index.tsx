@@ -24,8 +24,11 @@ import StepIndicator from "@/components/StepIndicator";
 import ProposalPreview from "@/components/ProposalPreview";
 import MissingInfoCheck from "@/components/MissingInfoCheck";
 import EligibilityCriteria, { CriteriaConfig, DEFAULT_CRITERIA } from "@/components/EligibilityCriteria";
-import { analyzeTender, generateProposal, extractTextFromPdf, parseCsvToTenders } from "@/lib/tender-api";
+import { analyzeTender, generateProposal, extractTextFromPdf, parseCsvToTenders, QuotaError } from "@/lib/tender-api";
+import { PdfExtractionError } from "@/lib/pdf-text";
 import { saveCompanyProfile, loadCompanyProfile } from "@/lib/company-storage";
+import EmailVerificationBanner from "@/components/EmailVerificationBanner";
+import { useEntitlement, useAiQuota } from "@/lib/entitlements";
 
 const Index = () => {
   const { toast } = useToast();
@@ -131,33 +134,52 @@ const Index = () => {
 
   const [pastedTenderText, setPastedTenderText] = useState<string>("");
 
+  const analyzeEntitlement = useEntitlement("ai_analyze");
+  const generateEntitlement = useEntitlement("ai_generate_proposal");
+  const { quota, refresh: refreshQuota } = useAiQuota();
+
   const handleProcess = async (overrideText?: string) => {
+    if (!user?.email_confirmed_at) {
+      toast({ title: "Verify your email first", description: "Check your inbox to unlock AI analysis.", variant: "destructive" });
+      return;
+    }
+    if (!analyzeEntitlement.allowed) {
+      toast({
+        title: analyzeEntitlement.trialExpired ? "Trial expired" : "Plan upgrade required",
+        description: "Upgrade your workspace plan to run AI tender analysis.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!pdfFile && !overrideText && !pastedTenderText) {
       toast({ title: "Please upload a tender PDF or paste tender text", variant: "destructive" });
       return;
     }
     setIsAnalyzing(true);
     try {
-      const pdfText = overrideText || pastedTenderText || await extractTextFromPdf(pdfFile!);
+      let pdfText = overrideText || pastedTenderText;
+      if (!pdfText && pdfFile) pdfText = await extractTextFromPdf(pdfFile);
       if (!pdfText || pdfText.length < 200) {
-        toast({ title: "Tender text too short", description: "Please paste the tender text manually using the box below.", variant: "destructive" });
+        toast({ title: "Tender text too short", description: "Paste the tender text manually below.", variant: "destructive" });
         setIsAnalyzing(false);
         return;
       }
       const result = await analyzeTender(pdfText, company);
-
       setRequirements(result.requirements);
-      if (result.eligibility) {
-        setEligibility(result.eligibility);
-      }
-
+      if (result.eligibility) setEligibility(result.eligibility);
       if (!selectedTender && result.requirements.summary) {
         setSelectedTender(result.requirements.summary.substring(0, 80));
       }
-
+      refreshQuota();
       toast({ title: "Tender analyzed successfully!" });
     } catch (err: any) {
-      toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
+      if (err instanceof PdfExtractionError) {
+        toast({ title: "Couldn't read PDF", description: err.message, variant: "destructive" });
+      } else if (err instanceof QuotaError) {
+        toast({ title: "AI quota reached", description: err.message, variant: "destructive" });
+      } else {
+        toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -165,19 +187,32 @@ const Index = () => {
 
   const handleGenerate = async () => {
     if (!requirements) return;
+    if (!user?.email_confirmed_at) {
+      toast({ title: "Verify your email first", variant: "destructive" });
+      return;
+    }
+    if (!generateEntitlement.allowed) {
+      toast({ title: "Plan upgrade required", description: "Upgrade to generate proposals.", variant: "destructive" });
+      return;
+    }
     setIsGenerating(true);
     try {
       const proposal = await generateProposal(
         selectedTender || "Untitled Tender",
         requirements,
         eligibility,
-        company
+        company,
       );
       setProposalText(proposal);
       setProposalReady(true);
+      refreshQuota();
       toast({ title: "Proposal generated!" });
     } catch (err: any) {
-      toast({ title: "Generation failed", description: err.message, variant: "destructive" });
+      if (err instanceof QuotaError) {
+        toast({ title: "AI quota reached", description: err.message, variant: "destructive" });
+      } else {
+        toast({ title: "Generation failed", description: err.message, variant: "destructive" });
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -267,6 +302,12 @@ const Index = () => {
           </div>
         </div>
       </header>
+      <EmailVerificationBanner />
+      {quota && quota.remaining <= 3 && quota.plan === "trial" && (
+        <div className="bg-accent/10 border-b border-accent/30 text-foreground text-xs text-center py-1.5">
+          Trial: {quota.remaining}/{quota.limit} AI analyses left this month.
+        </div>
+      )}
 
       <div className="pt-14">
         <AnimatePresence mode="wait">
