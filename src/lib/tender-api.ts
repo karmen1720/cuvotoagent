@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { TenderRequirements } from "@/components/RequirementsDisplay";
 import type { CompanyData } from "@/components/CompanyProfile";
-import { extractPdfText } from "@/lib/pdf-text";
+import { extractPdfText, PdfExtractionError } from "@/lib/pdf-text";
 import Papa from "papaparse";
 
 interface EligibilityCheck {
@@ -19,34 +19,53 @@ interface AnalyzeResult {
   } | null;
 }
 
-async function extractFnError(error: any, fallback: string): Promise<string> {
+export class QuotaError extends Error {
+  remaining = 0;
+  limit = 0;
+  plan = "trial";
+  constructor(message: string, info?: { remaining?: number; limit?: number; plan?: string }) {
+    super(message);
+    this.name = "QuotaError";
+    if (info?.remaining != null) this.remaining = info.remaining;
+    if (info?.limit != null) this.limit = info.limit;
+    if (info?.plan) this.plan = info.plan;
+  }
+}
+
+async function extractFnError(error: any, fallback: string): Promise<{ message: string; quota?: any }> {
   try {
     const ctx = error?.context;
-    if (ctx && typeof ctx.json === "function") {
-      const body = await ctx.json();
-      if (body?.error) return body.error;
-    } else if (ctx && typeof ctx.text === "function") {
+    let body: any = null;
+    if (ctx && typeof ctx.json === "function") body = await ctx.json();
+    else if (ctx && typeof ctx.text === "function") {
       const txt = await ctx.text();
-      try {
-        const body = JSON.parse(txt);
-        if (body?.error) return body.error;
-      } catch {
-        if (txt) return txt;
-      }
+      try { body = JSON.parse(txt); } catch { return { message: txt || fallback }; }
     }
+    if (body?.error) return { message: body.error, quota: body.quota };
   } catch {}
-  return error?.message || fallback;
+  return { message: error?.message || fallback };
+}
+
+function currentOrgId(): string | null {
+  try { return localStorage.getItem("cuvoto_current_org"); } catch { return null; }
 }
 
 export async function analyzeTender(
   pdfText: string,
-  companyProfile: CompanyData
+  companyProfile: CompanyData,
 ): Promise<AnalyzeResult> {
+  const orgId = currentOrgId();
+  if (!orgId) throw new Error("No active workspace selected");
+
   const { data, error } = await supabase.functions.invoke("analyze-tender", {
-    body: { pdfText, companyProfile },
+    body: { pdfText, companyProfile, orgId },
   });
 
-  if (error) throw new Error(await extractFnError(error, "Failed to analyze tender"));
+  if (error) {
+    const { message, quota } = await extractFnError(error, "Failed to analyze tender");
+    if (quota) throw new QuotaError(message, quota);
+    throw new Error(message);
+  }
   if (data?.error) throw new Error(data.error);
   return data as AnalyzeResult;
 }
@@ -55,25 +74,33 @@ export async function generateProposal(
   tenderTitle: string,
   requirements: TenderRequirements,
   eligibility: any,
-  companyProfile: CompanyData
+  companyProfile: CompanyData,
 ): Promise<string> {
+  const orgId = currentOrgId();
+  if (!orgId) throw new Error("No active workspace selected");
+
   const { data, error } = await supabase.functions.invoke("generate-proposal", {
-    body: { tenderTitle, requirements, eligibility, companyProfile },
+    body: { tenderTitle, requirements, eligibility, companyProfile, orgId },
   });
 
-  if (error) throw new Error(await extractFnError(error, "Failed to generate proposal"));
+  if (error) {
+    const { message, quota } = await extractFnError(error, "Failed to generate proposal");
+    if (quota) throw new QuotaError(message, quota);
+    throw new Error(message);
+  }
   if (data?.error) throw new Error(data.error);
   return data.proposal;
 }
 
 export async function extractTextFromPdf(file: File): Promise<string> {
   try {
-    const text = await extractPdfText(file);
-    if (text && text.length >= 200) return text;
-    throw new Error("Extracted text too short");
+    return await extractPdfText(file);
   } catch (e) {
-    console.warn("[extractTextFromPdf] pdf.js failed, returning filename fallback", e);
-    return `Tender document: ${file.name}\n\n(Note: automatic text extraction failed. Please paste the tender text manually for best results.)`;
+    if (e instanceof PdfExtractionError) throw e;
+    throw new PdfExtractionError(
+      "unreadable",
+      "We couldn't read this PDF. It may be password-protected or corrupted. Paste the tender text manually below.",
+    );
   }
 }
 
