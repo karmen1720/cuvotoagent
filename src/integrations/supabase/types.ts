@@ -487,6 +487,39 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          organization_id: string
+          tender_id: string | null
+          tokens_used: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          organization_id: string
+          tender_id?: string | null
+          tokens_used?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          organization_id?: string
+          tender_id?: string | null
+          tokens_used?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -541,6 +574,11 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      org_ai_quota_remaining: { Args: { _org_id: string }; Returns: Json }
+      plan_monthly_ai_limit: {
+        Args: { _plan: Database["public"]["Enums"]["plan_tier"] }
+        Returns: number
+      }
     }
     Enums: {
       app_role:
