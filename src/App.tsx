@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index.tsx";
 import Login from "./pages/Login.tsx";
 import Register from "./pages/Register.tsx";
@@ -25,32 +26,34 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <OrganizationProvider>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route
-                path="/onboarding"
-                element={
-                  <ProtectedRoute requireOrg={false}>
-                    <Onboarding />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/members" element={<ProtectedRoute><Members /></ProtectedRoute>} />
-              <Route path="/tenders" element={<ProtectedRoute><Tenders /></ProtectedRoute>} />
-              <Route path="/tenders/:id" element={<ProtectedRoute><TenderDetail /></ProtectedRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </OrganizationProvider>
-        </AuthProvider>
-      </BrowserRouter>
+      <ErrorBoundary scope="root">
+        <BrowserRouter>
+          <AuthProvider>
+            <OrganizationProvider>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route
+                  path="/onboarding"
+                  element={
+                    <ProtectedRoute requireOrg={false}>
+                      <ErrorBoundary scope="onboarding"><Onboarding /></ErrorBoundary>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/" element={<ProtectedRoute><ErrorBoundary scope="index"><Index /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><ErrorBoundary scope="profile"><Profile /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/members" element={<ProtectedRoute><ErrorBoundary scope="members"><Members /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/tenders" element={<ProtectedRoute><ErrorBoundary scope="tenders"><Tenders /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/tenders/:id" element={<ProtectedRoute><ErrorBoundary scope="tender-detail"><TenderDetail /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </OrganizationProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </ErrorBoundary>
     </TooltipProvider>
   </QueryClientProvider>
 );
