@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -63,12 +64,70 @@ serve(async (req) => {
   }
 
   try {
-    const { tenderTitle, requirements, eligibility, companyProfile } = await req.json();
+    // --- Auth ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const sb = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: claimsData, error: claimsErr } = await sb.auth.getClaims(authHeader.replace("Bearer ", ""));
+    if (claimsErr || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userId = claimsData.claims.sub as string;
+    const emailVerified = (claimsData.claims as any).email_verified !== false;
+
+    const { tenderTitle, requirements, eligibility, companyProfile, orgId } = await req.json();
 
     if (!tenderTitle) {
       return new Response(JSON.stringify({ error: 'tenderTitle is required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (!orgId) {
+      return new Response(JSON.stringify({ error: 'orgId is required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (!emailVerified) {
+      return new Response(JSON.stringify({ error: "Please verify your email to use AI features." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    const { data: member } = await admin
+      .from("organization_members")
+      .select("user_id")
+      .eq("organization_id", orgId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!member) {
+      return new Response(JSON.stringify({ error: "You are not a member of this workspace." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: quotaData } = await admin.rpc("org_ai_quota_remaining", { _org_id: orgId });
+    const quota = quotaData as any;
+    if (!quota?.allowed) {
+      const reason = quota?.reason === "trial_expired"
+        ? "Your trial has expired. Upgrade to continue using AI."
+        : `Monthly AI quota reached (${quota?.used}/${quota?.limit}). Upgrade your plan to continue.`;
+      return new Response(JSON.stringify({ error: reason, quota }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -256,6 +315,14 @@ Make each document PROFESSIONAL, COMPLETE, and READY FOR SUBMISSION with proper 
 
     const result = await response.json();
     const proposalText = result.choices?.[0]?.message?.content || "Failed to generate proposal";
+    const tokensUsed = result.usage?.total_tokens || 0;
+
+    admin.from("usage_events").insert({
+      organization_id: orgId,
+      user_id: userId,
+      event_type: "generate_proposal",
+      tokens_used: tokensUsed,
+    }).then(() => {}, (err: any) => console.error("usage log failed", err));
 
     return new Response(JSON.stringify({ proposal: proposalText }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
