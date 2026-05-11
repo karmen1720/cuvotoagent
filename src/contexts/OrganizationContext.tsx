@@ -93,14 +93,23 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const createOrganization = async (name: string): Promise<Organization> => {
-    if (!user) throw new Error("Not signed in");
-    const slug = `${slugify(name)}-${Math.random().toString(36).slice(2, 6)}`;
-    const { data: org, error } = await supabase
-      .from("organizations")
-      .insert({ name, slug, owner_id: user.id })
-      .select()
-      .single();
-    if (error) throw error;
+    if (!user) throw new Error("You must be signed in to create a workspace");
+    const base = slugify(name);
+    let org: any = null;
+    let lastError: any = null;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const slug = `${base}-${Math.random().toString(36).slice(2, 8)}`;
+      const { data, error } = await supabase
+        .from("organizations")
+        .insert({ name, slug, owner_id: user.id })
+        .select()
+        .single();
+      if (!error) { org = data; break; }
+      lastError = error;
+      // 23505 = unique_violation (slug collision) — retry with new suffix
+      if ((error as any).code !== "23505") break;
+    }
+    if (!org) throw new Error(lastError?.message || "Could not create workspace");
 
     // Owner is auto-added as member + org_admin via the
     // handle_new_organization() trigger on the organizations table.
