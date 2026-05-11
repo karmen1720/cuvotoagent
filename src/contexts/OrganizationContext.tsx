@@ -102,15 +102,8 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       .single();
     if (error) throw error;
 
-    await supabase.from("organization_members").insert({
-      organization_id: org.id,
-      user_id: user.id,
-    });
-    await supabase.from("user_roles").insert({
-      user_id: user.id,
-      organization_id: org.id,
-      role: "org_admin",
-    });
+    // Owner is auto-added as member + org_admin via the
+    // handle_new_organization() trigger on the organizations table.
 
     await refresh();
     localStorage.setItem(LS_KEY, org.id);
