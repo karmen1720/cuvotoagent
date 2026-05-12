@@ -11,6 +11,7 @@ interface EligibilityCheck {
 }
 
 interface AnalyzeResult {
+  tenderId: string;
   requirements: TenderRequirements & { summary?: string; tender_value?: string; deadline?: string };
   eligibility: {
     overall_score: number;
@@ -53,12 +54,27 @@ function currentOrgId(): string | null {
 export async function analyzeTender(
   pdfText: string,
   companyProfile: CompanyData,
+  tenderTitle: string,
+  userId: string,
 ): Promise<AnalyzeResult> {
   const orgId = currentOrgId();
   if (!orgId) throw new Error("No active workspace selected");
 
+  const { data: tender, error: tenderError } = await supabase
+    .from("tenders")
+    .insert({
+      organization_id: orgId,
+      created_by: userId,
+      title: tenderTitle || "Untitled Tender",
+      stage: "screening",
+    })
+    .select("id")
+    .single();
+
+  if (tenderError || !tender?.id) throw new Error(tenderError?.message || "Failed to create tender job");
+
   const { data, error } = await supabase.functions.invoke("analyze-tender", {
-    body: { pdfText, companyProfile, orgId },
+    body: { pdfText, companyProfile, orgId, tenderId: tender.id },
   });
 
   if (error) {
@@ -67,20 +83,66 @@ export async function analyzeTender(
     throw new Error(message);
   }
   if (data?.error) throw new Error(data.error);
-  return data as AnalyzeResult;
+
+  for (let attempt = 0; attempt < 90; attempt++) {
+    const { data: row, error: pollError } = await supabase
+      .from("tenders")
+      .select("id, raw_requirements, eligibility")
+      .eq("id", tender.id)
+      .single();
+
+    if (pollError) throw new Error(pollError.message);
+
+    const requirements = row?.raw_requirements as any;
+    const eligibility = row?.eligibility as any;
+    const reqJob = requirements?._job;
+    const eligJob = eligibility?._job;
+
+    if (reqJob?.status === "failed" || eligJob?.status === "failed") {
+      throw new Error(reqJob?.error || eligJob?.error || "Tender analysis failed");
+    }
+
+    if (requirements && !reqJob && eligibility && !eligJob) {
+      return {
+        tenderId: row.id,
+        requirements,
+        eligibility,
+      } as AnalyzeResult;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+
+  throw new Error("Tender analysis is taking longer than expected. Please try again.");
 }
 
 export async function generateProposal(
+  tenderId: string,
   tenderTitle: string,
   requirements: TenderRequirements,
   eligibility: any,
   companyProfile: CompanyData,
+  userId: string,
 ): Promise<string> {
   const orgId = currentOrgId();
   if (!orgId) throw new Error("No active workspace selected");
 
+  const { data: proposal, error: proposalError } = await supabase
+    .from("proposals")
+    .insert({
+      organization_id: orgId,
+      tender_id: tenderId,
+      created_by: userId,
+      title: tenderTitle || "Proposal",
+      status: "draft",
+    })
+    .select("id")
+    .single();
+
+  if (proposalError || !proposal?.id) throw new Error(proposalError?.message || "Failed to create proposal job");
+
   const { data, error } = await supabase.functions.invoke("generate-proposal", {
-    body: { tenderTitle, requirements, eligibility, companyProfile, orgId },
+    body: { proposalId: proposal.id, tenderId, tenderTitle, requirements, eligibility, companyProfile, orgId },
   });
 
   if (error) {
@@ -89,7 +151,29 @@ export async function generateProposal(
     throw new Error(message);
   }
   if (data?.error) throw new Error(data.error);
-  return data.proposal;
+
+  for (let attempt = 0; attempt < 120; attempt++) {
+    const { data: row, error: pollError } = await supabase
+      .from("proposals")
+      .select("content, metadata")
+      .eq("id", proposal.id)
+      .single();
+
+    if (pollError) throw new Error(pollError.message);
+
+    const job = (row?.metadata as any)?._job;
+    if (job?.status === "failed") {
+      throw new Error(job.error || "Proposal generation failed");
+    }
+
+    if (row?.content && !job) {
+      return row.content;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+
+  throw new Error("Proposal generation is taking longer than expected. Please try again.");
 }
 
 export async function extractTextFromPdf(file: File): Promise<string> {

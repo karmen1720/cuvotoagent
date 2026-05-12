@@ -6,6 +6,27 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+type ProposalPayload = {
+  proposalId: string;
+  tenderId: string;
+  tenderTitle: string;
+  requirements: Record<string, unknown>;
+  eligibility: Record<string, unknown> | null;
+  companyProfile: Record<string, unknown> | null;
+  orgId: string;
+  userId: string;
+};
+
+function jobState(status: "processing" | "failed", extra: Record<string, unknown> = {}) {
+  return {
+    _job: {
+      type: "proposal",
+      status,
+      ...extra,
+    },
+  };
+}
+
 function buildCompanyContext(cp: any): string {
   if (!cp) return "Company details not provided";
   return `
@@ -58,82 +79,12 @@ BANKING:
 `;
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+async function runProposalGeneration(admin: ReturnType<typeof createClient>, payload: ProposalPayload) {
+  const { proposalId, tenderId, tenderTitle, requirements, eligibility, companyProfile, orgId, userId } = payload;
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
   try {
-    // --- Auth ---
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const sb = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-    const { data: claimsData, error: claimsErr } = await sb.auth.getClaims(authHeader.replace("Bearer ", ""));
-    if (claimsErr || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const userId = claimsData.claims.sub as string;
-    const emailVerified = (claimsData.claims as any).email_verified !== false;
-
-    const { tenderTitle, requirements, eligibility, companyProfile, orgId } = await req.json();
-
-    if (!tenderTitle) {
-      return new Response(JSON.stringify({ error: 'tenderTitle is required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    if (!orgId) {
-      return new Response(JSON.stringify({ error: 'orgId is required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    if (!emailVerified) {
-      return new Response(JSON.stringify({ error: "Please verify your email to use AI features." }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    const { data: member } = await admin
-      .from("organization_members")
-      .select("user_id")
-      .eq("organization_id", orgId)
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (!member) {
-      return new Response(JSON.stringify({ error: "You are not a member of this workspace." }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const { data: quotaData } = await admin.rpc("org_ai_quota_remaining", { _org_id: orgId });
-    const quota = quotaData as any;
-    if (!quota?.allowed) {
-      const reason = quota?.reason === "trial_expired"
-        ? "Your trial has expired. Upgrade to continue using AI."
-        : `Monthly AI quota reached (${quota?.used}/${quota?.limit}). Upgrade your plan to continue.`;
-      return new Response(JSON.stringify({ error: reason, quota }), {
-        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
     const companyDetails = buildCompanyContext(companyProfile);
     const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
@@ -298,18 +249,10 @@ Make each document PROFESSIONAL, COMPLETE, and READY FOR SUBMISSION with proper 
     });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds in Settings > Workspace > Usage." }), {
-          status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
       const errText = await response.text();
       console.error("AI gateway error:", response.status, errText);
+      if (response.status === 429) throw new Error("Rate limit exceeded. Please try again in a moment.");
+      if (response.status === 402) throw new Error("AI credits exhausted. Please add funds in Settings > Workspace > Usage.");
       throw new Error("Proposal generation failed");
     }
 
@@ -317,14 +260,165 @@ Make each document PROFESSIONAL, COMPLETE, and READY FOR SUBMISSION with proper 
     const proposalText = result.choices?.[0]?.message?.content || "Failed to generate proposal";
     const tokensUsed = result.usage?.total_tokens || 0;
 
-    admin.from("usage_events").insert({
+    const { error: updateError } = await admin
+      .from("proposals")
+      .update({
+        content: proposalText,
+        metadata: {
+          generatedAt: new Date().toISOString(),
+          source: "lovable-ai",
+          tenderId,
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", proposalId)
+      .eq("organization_id", orgId);
+    if (updateError) throw updateError;
+
+    const { error: usageError } = await admin.from("usage_events").insert({
       organization_id: orgId,
       user_id: userId,
       event_type: "generate_proposal",
       tokens_used: tokensUsed,
-    }).then(() => {}, (err: any) => console.error("usage log failed", err));
+      tender_id: tenderId,
+    });
+    if (usageError) console.error("usage log failed", usageError);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown proposal error";
+    console.error("generate-proposal background error:", error);
+    await admin
+      .from("proposals")
+      .update({
+        content: null,
+        metadata: jobState("failed", { failedAt: new Date().toISOString(), error: message, tenderId }),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", proposalId)
+      .eq("organization_id", orgId);
+  }
+}
 
-    return new Response(JSON.stringify({ proposal: proposalText }), {
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // --- Auth ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const sb = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: claimsData, error: claimsErr } = await sb.auth.getClaims(authHeader.replace("Bearer ", ""));
+    if (claimsErr || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userId = claimsData.claims.sub as string;
+    const emailVerified = (claimsData.claims as any).email_verified !== false;
+
+    const { proposalId, tenderId, tenderTitle, requirements, eligibility, companyProfile, orgId } = await req.json();
+
+    if (!tenderTitle) {
+      return new Response(JSON.stringify({ error: 'tenderTitle is required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (!proposalId) {
+      return new Response(JSON.stringify({ error: 'proposalId is required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (!tenderId) {
+      return new Response(JSON.stringify({ error: 'tenderId is required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (!orgId) {
+      return new Response(JSON.stringify({ error: 'orgId is required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (!emailVerified) {
+      return new Response(JSON.stringify({ error: "Please verify your email to use AI features." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    const { data: member } = await admin
+      .from("organization_members")
+      .select("user_id")
+      .eq("organization_id", orgId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!member) {
+      return new Response(JSON.stringify({ error: "You are not a member of this workspace." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: proposal } = await admin
+      .from("proposals")
+      .select("id")
+      .eq("id", proposalId)
+      .eq("organization_id", orgId)
+      .eq("tender_id", tenderId)
+      .maybeSingle();
+    if (!proposal) {
+      return new Response(JSON.stringify({ error: "Proposal record not found." }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: quotaData } = await admin.rpc("org_ai_quota_remaining", { _org_id: orgId });
+    const quota = quotaData as any;
+    if (!quota?.allowed) {
+      const reason = quota?.reason === "trial_expired"
+        ? "Your trial has expired. Upgrade to continue using AI."
+        : `Monthly AI quota reached (${quota?.used}/${quota?.limit}). Upgrade your plan to continue.`;
+      return new Response(JSON.stringify({ error: reason, quota }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const startedAt = new Date().toISOString();
+    const { error: queueError } = await admin
+      .from("proposals")
+      .update({
+        content: null,
+        metadata: jobState("processing", { startedAt, tenderId }),
+        updated_at: startedAt,
+      })
+      .eq("id", proposalId)
+      .eq("organization_id", orgId);
+    if (queueError) throw queueError;
+
+    EdgeRuntime.waitUntil(runProposalGeneration(admin, {
+      proposalId,
+      tenderId,
+      tenderTitle,
+      requirements,
+      eligibility,
+      companyProfile,
+      orgId,
+      userId,
+    }));
+
+    return new Response(JSON.stringify({ accepted: true, proposalId, status: "processing" }), {
+      status: 202,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
