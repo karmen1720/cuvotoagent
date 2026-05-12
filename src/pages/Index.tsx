@@ -43,6 +43,7 @@ const Index = () => {
   const [tenderTitles, setTenderTitles] = useState<string[]>([]);
   const [selectedTender, setSelectedTender] = useState("");
   const [requirements, setRequirements] = useState<(TenderRequirements & Record<string, any>) | null>(null);
+  const [tenderId, setTenderId] = useState<string | null>(null);
   const [eligibility, setEligibility] = useState<{ overall_score: number; checks: any[]; recommendation: string; risk_factors?: string[]; action_items?: string[]; missing_data?: string[]; pre_bid_queries?: string[] } | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -164,7 +165,8 @@ const Index = () => {
         setIsAnalyzing(false);
         return;
       }
-      const result = await analyzeTender(pdfText, company);
+      const result = await analyzeTender(pdfText, company, selectedTender || pdfFile?.name || "Untitled Tender", user.id);
+      setTenderId(result.tenderId);
       setRequirements(result.requirements);
       if (result.eligibility) setEligibility(result.eligibility);
       if (!selectedTender && result.requirements.summary) {
@@ -198,10 +200,12 @@ const Index = () => {
     setIsGenerating(true);
     try {
       const proposal = await generateProposal(
+        tenderId || "",
         selectedTender || "Untitled Tender",
         requirements,
         eligibility,
         company,
+        user.id,
       );
       setProposalText(proposal);
       setProposalReady(true);
@@ -231,6 +235,7 @@ const Index = () => {
     setTenderTitles([]);
     setSelectedTender("");
     setRequirements(null);
+    setTenderId(null);
     setEligibility(null);
     setProposalText("");
     setProposalReady(false);
