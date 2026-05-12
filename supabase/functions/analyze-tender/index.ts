@@ -240,14 +240,14 @@ serve(async (req) => {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: `Analyze this Indian tender.\n\nCOMPANY PROFILE:\n${companyProfile ? JSON.stringify(companyProfile) : "Not provided"}\n\nTENDER DOCUMENT:\n${workingText.substring(0, 60000)}` },
         ],
         tools: [TOOL_SCHEMA],
         tool_choice: { type: "function", function: { name: "extract_tender_analysis" } },
-        reasoning: { effort: "xhigh" },
+        reasoning: { effort: "low" },
       }),
     });
 

@@ -144,7 +144,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-2.5-flash",
         messages: [
           {
             role: "system",
@@ -293,7 +293,7 @@ Complete checklist table: S.No | Document | Page No. | Status (Enclosed/To be fu
 Make each document PROFESSIONAL, COMPLETE, and READY FOR SUBMISSION with proper Indian government formatting per GFR 2017/2022, CVC, and DoE guidelines. Use the exact company details provided.`
           }
         ],
-        reasoning: { effort: "xhigh" }
+        reasoning: { effort: "low" }
       }),
     });
 
