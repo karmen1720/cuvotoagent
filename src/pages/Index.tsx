@@ -171,18 +171,34 @@ const Index = () => {
     try {
       let pdfText = overrideText || pastedTenderText;
       if (!pdfText && pdfFile) pdfText = await extractTextFromPdf(pdfFile);
+      // Append supporting docs text
+      if (supportingFiles.length > 0) {
+        for (const f of supportingFiles) {
+          try {
+            const t = await extractTextFromPdf(f);
+            pdfText += `\n\n---SUPPORTING DOCUMENT: ${f.name}---\n${t}`;
+          } catch (e) {
+            console.warn("Skipped supporting doc", f.name, e);
+          }
+        }
+      }
       if (!pdfText || pdfText.length < 200) {
         toast({ title: "Tender text too short", description: "Paste the tender text manually below.", variant: "destructive" });
         setIsAnalyzing(false);
         return;
       }
-      const result = await analyzeTender(pdfText, company, selectedTender || pdfFile?.name || "Untitled Tender", user.id);
-      setTenderId(result.tenderId);
+      const title = selectedTender || pdfFile?.name || "Untitled Tender";
+      const newTenderId = await startTenderAnalysis(pdfText, company, title, user.id);
+      setTenderId(newTenderId);
+      saveJob({ stage: "analyzing", tenderId: newTenderId, title, showDashboard: true });
+      toast({ title: "Analysis started", description: "Running in background — safe to navigate away." });
+      const result = await pollTenderAnalysis(newTenderId);
       setRequirements(result.requirements);
       if (result.eligibility) setEligibility(result.eligibility);
       if (!selectedTender && result.requirements.summary) {
         setSelectedTender(result.requirements.summary.substring(0, 80));
       }
+      saveJob({ stage: "analyzed", tenderId: newTenderId, title, showDashboard: true });
       refreshQuota();
       toast({ title: "Tender analyzed successfully!" });
     } catch (err: any) {
@@ -210,16 +226,15 @@ const Index = () => {
     }
     setIsGenerating(true);
     try {
-      const proposal = await generateProposal(
-        tenderId || "",
-        selectedTender || "Untitled Tender",
-        requirements,
-        eligibility,
-        company,
-        user.id,
-      );
+      const title = selectedTender || "Untitled Tender";
+      const newProposalId = await startProposal(tenderId || "", title, requirements, eligibility, company, user.id);
+      setProposalId(newProposalId);
+      saveJob({ stage: "generating", tenderId, proposalId: newProposalId, title, showDashboard: true });
+      toast({ title: "Proposal generation started", description: "Running in background." });
+      const proposal = await pollProposal(newProposalId);
       setProposalText(proposal);
       setProposalReady(true);
+      clearJob();
       refreshQuota();
       toast({ title: "Proposal generated!" });
     } catch (err: any) {
