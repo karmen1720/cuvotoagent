@@ -83,6 +83,60 @@ const Index = () => {
     }
   }, []);
 
+  // Resume any in-flight background job
+  useEffect(() => {
+    if (!user) return;
+    const job = loadJob();
+    if (!job) return;
+    setShowDashboard(true);
+    if (job.title) setSelectedTender(job.title);
+    if (job.tenderId) setTenderId(job.tenderId);
+
+    (async () => {
+      try {
+        if (job.stage === "analyzing" && job.tenderId) {
+          setIsAnalyzing(true);
+          toast({ title: "Resuming tender analysis…" });
+          const result = await pollTenderAnalysis(job.tenderId);
+          setRequirements(result.requirements);
+          if (result.eligibility) setEligibility(result.eligibility);
+          saveJob({ ...job, stage: "analyzed" });
+          toast({ title: "Tender analysis complete!" });
+        } else if (job.stage === "analyzed" && job.tenderId) {
+          // Hydrate from DB
+          const result = await pollTenderAnalysis(job.tenderId, { maxAttempts: 1 }).catch(() => null);
+          if (result) {
+            setRequirements(result.requirements);
+            if (result.eligibility) setEligibility(result.eligibility);
+          }
+        } else if (job.stage === "generating" && job.proposalId) {
+          // Hydrate tender first
+          if (job.tenderId) {
+            const result = await pollTenderAnalysis(job.tenderId, { maxAttempts: 1 }).catch(() => null);
+            if (result) {
+              setRequirements(result.requirements);
+              if (result.eligibility) setEligibility(result.eligibility);
+            }
+          }
+          setProposalId(job.proposalId);
+          setIsGenerating(true);
+          toast({ title: "Resuming proposal generation…" });
+          const proposal = await pollProposal(job.proposalId);
+          setProposalText(proposal);
+          setProposalReady(true);
+          clearJob();
+          toast({ title: "Proposal ready!" });
+        }
+      } catch (err: any) {
+        toast({ title: "Background job failed", description: err.message, variant: "destructive" });
+        clearJob();
+      } finally {
+        setIsAnalyzing(false);
+        setIsGenerating(false);
+      }
+    })();
+  }, [user?.id]);
+
   const currentStep = !pdfFile ? 0 : !requirements ? 1 : !proposalReady ? 2 : 3;
 
   const steps = [
