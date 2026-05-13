@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Upload, FileSpreadsheet, FileText, Link as LinkIcon, ClipboardPaste } from "lucide-react";
+import { Upload, FileSpreadsheet, FileText, Link as LinkIcon, ClipboardPaste, Paperclip, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,9 +13,11 @@ interface TenderUploaderProps {
   onPasteText?: (text: string) => void;
   excelFile: File | null;
   pdfFile: File | null;
+  supportingFiles?: File[];
+  onSupportingFilesChange?: (files: File[]) => void;
 }
 
-const TenderUploader = ({ onExcelUpload, onPdfUpload, onSheetUrl, onPasteText, excelFile, pdfFile }: TenderUploaderProps) => {
+const TenderUploader = ({ onExcelUpload, onPdfUpload, onSheetUrl, onPasteText, excelFile, pdfFile, supportingFiles = [], onSupportingFilesChange }: TenderUploaderProps) => {
   const [sheetUrl, setSheetUrl] = useState("");
   const [dragOverExcel, setDragOverExcel] = useState(false);
   const [dragOverPdf, setDragOverPdf] = useState(false);
