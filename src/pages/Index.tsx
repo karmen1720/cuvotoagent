@@ -40,6 +40,7 @@ const Index = () => {
   const [criteria, setCriteria] = useState<CriteriaConfig>(DEFAULT_CRITERIA);
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [supportingFiles, setSupportingFiles] = useState<File[]>([]);
   const [tenderTitles, setTenderTitles] = useState<string[]>([]);
   const [selectedTender, setSelectedTender] = useState("");
   const [requirements, setRequirements] = useState<(TenderRequirements & Record<string, any>) | null>(null);
@@ -47,11 +48,21 @@ const Index = () => {
   const [eligibility, setEligibility] = useState<{ overall_score: number; checks: any[]; recommendation: string; risk_factors?: string[]; action_items?: string[]; missing_data?: string[]; pre_bid_queries?: string[] } | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [proposalId, setProposalId] = useState<string | null>(null);
   const [proposalText, setProposalText] = useState("");
   const [proposalReady, setProposalReady] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+
+  const JOB_KEY = "cuvoto_active_job";
+  const saveJob = (data: Record<string, any>) => {
+    try { localStorage.setItem(JOB_KEY, JSON.stringify(data)); } catch {}
+  };
+  const loadJob = (): any => {
+    try { return JSON.parse(localStorage.getItem(JOB_KEY) || "null"); } catch { return null; }
+  };
+  const clearJob = () => { try { localStorage.removeItem(JOB_KEY); } catch {} };
 
   // Load saved company profile on mount
   useEffect(() => {
