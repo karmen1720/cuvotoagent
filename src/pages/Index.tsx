@@ -429,6 +429,8 @@ const Index = () => {
                     onPasteText={(t) => { setPastedTenderText(t); toast({ title: "Tender text saved", description: "Click Process to analyze." }); }}
                     excelFile={excelFile}
                     pdfFile={pdfFile}
+                    supportingFiles={supportingFiles}
+                    onSupportingFilesChange={setSupportingFiles}
                   />
 
                   {/* Tender selector */}
