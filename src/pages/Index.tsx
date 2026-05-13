@@ -24,7 +24,7 @@ import StepIndicator from "@/components/StepIndicator";
 import ProposalPreview from "@/components/ProposalPreview";
 import MissingInfoCheck from "@/components/MissingInfoCheck";
 import EligibilityCriteria, { CriteriaConfig, DEFAULT_CRITERIA } from "@/components/EligibilityCriteria";
-import { analyzeTender, generateProposal, extractTextFromPdf, parseCsvToTenders, QuotaError } from "@/lib/tender-api";
+import { startTenderAnalysis, pollTenderAnalysis, startProposal, pollProposal, extractTextFromPdf, parseCsvToTenders, QuotaError } from "@/lib/tender-api";
 import { PdfExtractionError } from "@/lib/pdf-text";
 import { saveCompanyProfile, loadCompanyProfile } from "@/lib/company-storage";
 import EmailVerificationBanner from "@/components/EmailVerificationBanner";
