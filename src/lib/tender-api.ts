@@ -108,7 +108,9 @@ export async function pollTenderAnalysis(
     if (reqJob?.status === "failed" || eligJob?.status === "failed") {
       throw new Error(reqJob?.error || eligJob?.error || "Tender analysis failed");
     }
-    if (requirements && !reqJob && eligibility && !eligJob) {
+    const isReqDone = requirements && (!reqJob || reqJob.status === "success");
+    const isEligDone = !eligibility || (!eligJob || eligJob.status === "success");
+    if (isReqDone && isEligDone) {
       return { tenderId: row.id, requirements, eligibility } as AnalyzeResult;
     }
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -182,7 +184,7 @@ export async function pollProposal(
     if (job?.status === "failed") {
       throw new Error(job.error || "Proposal generation failed");
     }
-    if (row?.content && !job) return row.content;
+    if (row?.content && (!job || job.status === "success")) return row.content;
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
   throw new Error("Proposal generation is taking longer than expected. Please try again.");
