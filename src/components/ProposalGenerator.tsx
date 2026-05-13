@@ -3,6 +3,7 @@ import { FileOutput, Loader2, FileText, Copy, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { exportDocumentToPdf } from "@/lib/pdf-export";
 
 interface ProposalGeneratorProps {
   tenderTitle: string;
