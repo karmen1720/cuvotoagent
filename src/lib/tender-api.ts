@@ -126,7 +126,7 @@ export async function analyzeTender(
   return pollTenderAnalysis(tenderId);
 }
 
-export async function generateProposal(
+export async function startProposal(
   tenderId: string,
   tenderTitle: string,
   requirements: TenderRequirements,
@@ -161,29 +161,43 @@ export async function generateProposal(
     throw new Error(message);
   }
   if (data?.error) throw new Error(data.error);
+  return proposal.id;
+}
 
-  for (let attempt = 0; attempt < 120; attempt++) {
+export async function pollProposal(
+  proposalId: string,
+  opts: { signal?: AbortSignal; maxAttempts?: number } = {},
+): Promise<string> {
+  const max = opts.maxAttempts ?? 240;
+  for (let attempt = 0; attempt < max; attempt++) {
+    if (opts.signal?.aborted) throw new Error("Polling aborted");
     const { data: row, error: pollError } = await supabase
       .from("proposals")
       .select("content, metadata")
-      .eq("id", proposal.id)
+      .eq("id", proposalId)
       .single();
-
     if (pollError) throw new Error(pollError.message);
 
     const job = (row?.metadata as any)?._job;
     if (job?.status === "failed") {
       throw new Error(job.error || "Proposal generation failed");
     }
-
-    if (row?.content && !job) {
-      return row.content;
-    }
-
+    if (row?.content && !job) return row.content;
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
-
   throw new Error("Proposal generation is taking longer than expected. Please try again.");
+}
+
+export async function generateProposal(
+  tenderId: string,
+  tenderTitle: string,
+  requirements: TenderRequirements,
+  eligibility: any,
+  companyProfile: CompanyData,
+  userId: string,
+): Promise<string> {
+  const proposalId = await startProposal(tenderId, tenderTitle, requirements, eligibility, companyProfile, userId);
+  return pollProposal(proposalId);
 }
 
 export async function extractTextFromPdf(file: File): Promise<string> {
