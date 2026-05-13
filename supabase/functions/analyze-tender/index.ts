@@ -154,6 +154,30 @@ function jobState(status: "processing" | "failed", extra: Record<string, unknown
   };
 }
 
+async function fetchWithFallback(payload: any) {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+  let res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok && (res.status === 402 || res.status === 429) && GEMINI_API_KEY) {
+    console.log(`Lovable API returned ${res.status}, falling back to free Gemini API`);
+    res = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${GEMINI_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, model: "gemini-2.5-flash" }),
+    });
+  }
+
+  return res;
+}
+
 async function runAnalysis(admin: ReturnType<typeof createClient>, payload: AnalysisPayload) {
   const { tenderId, pdfText, companyProfile, orgId, userId } = payload;
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -165,17 +189,13 @@ async function runAnalysis(admin: ReturnType<typeof createClient>, payload: Anal
     if (chunks.length > 1) {
       const summaries: string[] = [];
       for (let i = 0; i < chunks.length; i++) {
-        const summaryRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              { role: "system", content: "You are an Indian tender analyst. Extract all critical tender details from this chunk only." },
-              { role: "user", content: `Tender chunk ${i + 1} of ${chunks.length}:\n\n${chunks[i]}` },
-            ],
-            reasoning: { effort: "low" },
-          }),
+        const summaryRes = await fetchWithFallback({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: "You are an Indian tender analyst. Extract all critical tender details from this chunk only." },
+            { role: "user", content: `Tender chunk ${i + 1} of ${chunks.length}:\n\n${chunks[i]}` },
+          ],
+          reasoning: { effort: "low" },
         });
 
         if (!summaryRes.ok) {
@@ -190,22 +210,18 @@ async function runAnalysis(admin: ReturnType<typeof createClient>, payload: Anal
       workingText = summaries.join("\n\n---CHUNK BREAK---\n\n");
     }
 
-    const extractionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: `Analyze this Indian tender.\n\nCOMPANY PROFILE:\n${companyProfile ? JSON.stringify(companyProfile) : "Not provided"}\n\nTENDER DOCUMENT:\n${workingText.substring(0, 60000)}`,
-          },
-        ],
-        tools: [TOOL_SCHEMA],
-        tool_choice: { type: "function", function: { name: "extract_tender_analysis" } },
-        reasoning: { effort: "low" },
-      }),
+    const extractionResponse = await fetchWithFallback({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: `Analyze this Indian tender.\n\nCOMPANY PROFILE:\n${companyProfile ? JSON.stringify(companyProfile) : "Not provided"}\n\nTENDER DOCUMENT:\n${workingText.substring(0, 60000)}`,
+        },
+      ],
+      tools: [TOOL_SCHEMA],
+      tool_choice: { type: "function", function: { name: "extract_tender_analysis" } },
+      reasoning: { effort: "low" },
     });
 
     if (!extractionResponse.ok) {

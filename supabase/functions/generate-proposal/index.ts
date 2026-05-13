@@ -79,6 +79,30 @@ BANKING:
 `;
 }
 
+async function fetchWithFallback(payload: any) {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+  let res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok && (res.status === 402 || res.status === 429) && GEMINI_API_KEY) {
+    console.log(`Lovable API returned ${res.status}, falling back to free Gemini API`);
+    res = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${GEMINI_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, model: "gemini-2.5-flash" }),
+    });
+  }
+
+  return res;
+}
+
 async function runProposalGeneration(admin: ReturnType<typeof createClient>, payload: ProposalPayload) {
   const { proposalId, tenderId, tenderTitle, requirements, eligibility, companyProfile, orgId, userId } = payload;
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -88,18 +112,12 @@ async function runProposalGeneration(admin: ReturnType<typeof createClient>, pay
     const companyDetails = buildCompanyContext(companyProfile);
     const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `You are India's top government tender proposal writer with 25+ years winning GeM, CPPP, state & PSU tenders. You adhere strictly to GFR 2017, CVC guidelines, and Public Procurement (Preference to Make in India) Order.
+    const response = await fetchWithFallback({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        {
+          role: "system",
+          content: `You are India's top government tender proposal writer with 25+ years winning GeM, CPPP, state & PSU tenders. You adhere strictly to GFR 2017, CVC guidelines, and Public Procurement (Preference to Make in India) Order.
 
 CRITICAL RULES:
 1. Generate ALL documents as SEPARATE SECTIONS clearly marked with "===DOCUMENT: <name>===" delimiter
@@ -110,10 +128,10 @@ CRITICAL RULES:
 6. Include authorized signatory block at bottom of each document
 7. Today's date: ${today}
 8. FIRST document MUST be a Covering Letter on company letterhead — this is mandatory for every Indian tender submission`
-          },
-          {
-            role: "user",
-            content: `Generate ALL the following SEPARATE tender submission documents for this tender. Each document MUST start with "===DOCUMENT: <name>===" on its own line.
+        },
+        {
+          role: "user",
+          content: `Generate ALL the following SEPARATE tender submission documents for this tender. Each document MUST start with "===DOCUMENT: <name>===" on its own line.
 
 TENDER: ${tenderTitle}
 ${companyDetails}
@@ -242,10 +260,9 @@ EMD / Tender Fee Exemption Undertaking for MSME / Startup / NSIC registered enti
 Complete checklist table: S.No | Document | Page No. | Status (Enclosed/To be furnished). Include all 18 documents generated above.
 
 Make each document PROFESSIONAL, COMPLETE, and READY FOR SUBMISSION with proper Indian government formatting per GFR 2017/2022, CVC, and DoE guidelines. Use the exact company details provided.`
-          }
-        ],
-        reasoning: { effort: "low" }
-      }),
+        }
+      ],
+      reasoning: { effort: "low" }
     });
 
     if (!response.ok) {
