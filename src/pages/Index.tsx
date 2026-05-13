@@ -312,13 +312,16 @@ const Index = () => {
   const handleReset = () => {
     setExcelFile(null);
     setPdfFile(null);
+    setSupportingFiles([]);
     setTenderTitles([]);
     setSelectedTender("");
     setRequirements(null);
     setTenderId(null);
     setEligibility(null);
+    setProposalId(null);
     setProposalText("");
     setProposalReady(false);
+    clearJob();
   };
 
   return (
