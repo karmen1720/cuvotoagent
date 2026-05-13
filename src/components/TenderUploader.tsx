@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Upload, FileSpreadsheet, FileText, Link as LinkIcon, ClipboardPaste } from "lucide-react";
+import { Upload, FileSpreadsheet, FileText, Link as LinkIcon, ClipboardPaste, Paperclip, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,9 +13,11 @@ interface TenderUploaderProps {
   onPasteText?: (text: string) => void;
   excelFile: File | null;
   pdfFile: File | null;
+  supportingFiles?: File[];
+  onSupportingFilesChange?: (files: File[]) => void;
 }
 
-const TenderUploader = ({ onExcelUpload, onPdfUpload, onSheetUrl, onPasteText, excelFile, pdfFile }: TenderUploaderProps) => {
+const TenderUploader = ({ onExcelUpload, onPdfUpload, onSheetUrl, onPasteText, excelFile, pdfFile, supportingFiles = [], onSupportingFilesChange }: TenderUploaderProps) => {
   const [sheetUrl, setSheetUrl] = useState("");
   const [dragOverExcel, setDragOverExcel] = useState(false);
   const [dragOverPdf, setDragOverPdf] = useState(false);
@@ -123,6 +125,59 @@ const TenderUploader = ({ onExcelUpload, onPdfUpload, onSheetUrl, onPasteText, e
           </div>
         </Card>
       </div>
+
+      {/* Supporting documents (multiple PDFs) */}
+      {onSupportingFilesChange && (
+        <Card className="p-4 shadow-[var(--shadow-card)]">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Paperclip className="w-4 h-4 text-accent" />
+              <span className="text-sm font-semibold text-foreground">Supporting Documents</span>
+              <span className="text-xs text-muted-foreground">(optional, multiple PDFs)</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => document.getElementById("supporting-input")?.click()}
+            >
+              Add files
+            </Button>
+            <input
+              id="supporting-input"
+              type="file"
+              accept=".pdf"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                if (files.length) onSupportingFilesChange([...(supportingFiles || []), ...files]);
+                e.target.value = "";
+              }}
+            />
+          </div>
+          {supportingFiles.length > 0 ? (
+            <ul className="space-y-1.5">
+              {supportingFiles.map((f, i) => (
+                <li key={i} className="flex items-center justify-between bg-muted/40 rounded-md px-3 py-1.5">
+                  <span className="text-xs text-foreground truncate flex items-center gap-2">
+                    <FileText className="w-3.5 h-3.5 text-primary" /> {f.name}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Remove"
+                    onClick={() => onSupportingFilesChange(supportingFiles.filter((_, j) => j !== i))}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-muted-foreground">Attach annexures, BOQs, past-experience proofs etc. They will be analyzed alongside the main tender.</p>
+          )}
+        </Card>
+      )}
 
       {/* Paste tender text fallback */}
       {onPasteText && (

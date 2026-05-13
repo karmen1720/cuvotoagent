@@ -24,7 +24,7 @@ import StepIndicator from "@/components/StepIndicator";
 import ProposalPreview from "@/components/ProposalPreview";
 import MissingInfoCheck from "@/components/MissingInfoCheck";
 import EligibilityCriteria, { CriteriaConfig, DEFAULT_CRITERIA } from "@/components/EligibilityCriteria";
-import { analyzeTender, generateProposal, extractTextFromPdf, parseCsvToTenders, QuotaError } from "@/lib/tender-api";
+import { startTenderAnalysis, pollTenderAnalysis, startProposal, pollProposal, extractTextFromPdf, parseCsvToTenders, QuotaError } from "@/lib/tender-api";
 import { PdfExtractionError } from "@/lib/pdf-text";
 import { saveCompanyProfile, loadCompanyProfile } from "@/lib/company-storage";
 import EmailVerificationBanner from "@/components/EmailVerificationBanner";
@@ -40,6 +40,7 @@ const Index = () => {
   const [criteria, setCriteria] = useState<CriteriaConfig>(DEFAULT_CRITERIA);
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [supportingFiles, setSupportingFiles] = useState<File[]>([]);
   const [tenderTitles, setTenderTitles] = useState<string[]>([]);
   const [selectedTender, setSelectedTender] = useState("");
   const [requirements, setRequirements] = useState<(TenderRequirements & Record<string, any>) | null>(null);
@@ -47,11 +48,21 @@ const Index = () => {
   const [eligibility, setEligibility] = useState<{ overall_score: number; checks: any[]; recommendation: string; risk_factors?: string[]; action_items?: string[]; missing_data?: string[]; pre_bid_queries?: string[] } | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [proposalId, setProposalId] = useState<string | null>(null);
   const [proposalText, setProposalText] = useState("");
   const [proposalReady, setProposalReady] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+
+  const JOB_KEY = "cuvoto_active_job";
+  const saveJob = (data: Record<string, any>) => {
+    try { localStorage.setItem(JOB_KEY, JSON.stringify(data)); } catch {}
+  };
+  const loadJob = (): any => {
+    try { return JSON.parse(localStorage.getItem(JOB_KEY) || "null"); } catch { return null; }
+  };
+  const clearJob = () => { try { localStorage.removeItem(JOB_KEY); } catch {} };
 
   // Load saved company profile on mount
   useEffect(() => {
@@ -71,6 +82,60 @@ const Index = () => {
       try { setCriteria(JSON.parse(saved)); } catch {}
     }
   }, []);
+
+  // Resume any in-flight background job
+  useEffect(() => {
+    if (!user) return;
+    const job = loadJob();
+    if (!job) return;
+    setShowDashboard(true);
+    if (job.title) setSelectedTender(job.title);
+    if (job.tenderId) setTenderId(job.tenderId);
+
+    (async () => {
+      try {
+        if (job.stage === "analyzing" && job.tenderId) {
+          setIsAnalyzing(true);
+          toast({ title: "Resuming tender analysis…" });
+          const result = await pollTenderAnalysis(job.tenderId);
+          setRequirements(result.requirements);
+          if (result.eligibility) setEligibility(result.eligibility);
+          saveJob({ ...job, stage: "analyzed" });
+          toast({ title: "Tender analysis complete!" });
+        } else if (job.stage === "analyzed" && job.tenderId) {
+          // Hydrate from DB
+          const result = await pollTenderAnalysis(job.tenderId, { maxAttempts: 1 }).catch(() => null);
+          if (result) {
+            setRequirements(result.requirements);
+            if (result.eligibility) setEligibility(result.eligibility);
+          }
+        } else if (job.stage === "generating" && job.proposalId) {
+          // Hydrate tender first
+          if (job.tenderId) {
+            const result = await pollTenderAnalysis(job.tenderId, { maxAttempts: 1 }).catch(() => null);
+            if (result) {
+              setRequirements(result.requirements);
+              if (result.eligibility) setEligibility(result.eligibility);
+            }
+          }
+          setProposalId(job.proposalId);
+          setIsGenerating(true);
+          toast({ title: "Resuming proposal generation…" });
+          const proposal = await pollProposal(job.proposalId);
+          setProposalText(proposal);
+          setProposalReady(true);
+          clearJob();
+          toast({ title: "Proposal ready!" });
+        }
+      } catch (err: any) {
+        toast({ title: "Background job failed", description: err.message, variant: "destructive" });
+        clearJob();
+      } finally {
+        setIsAnalyzing(false);
+        setIsGenerating(false);
+      }
+    })();
+  }, [user?.id]);
 
   const currentStep = !pdfFile ? 0 : !requirements ? 1 : !proposalReady ? 2 : 3;
 
@@ -160,18 +225,34 @@ const Index = () => {
     try {
       let pdfText = overrideText || pastedTenderText;
       if (!pdfText && pdfFile) pdfText = await extractTextFromPdf(pdfFile);
+      // Append supporting docs text
+      if (supportingFiles.length > 0) {
+        for (const f of supportingFiles) {
+          try {
+            const t = await extractTextFromPdf(f);
+            pdfText += `\n\n---SUPPORTING DOCUMENT: ${f.name}---\n${t}`;
+          } catch (e) {
+            console.warn("Skipped supporting doc", f.name, e);
+          }
+        }
+      }
       if (!pdfText || pdfText.length < 200) {
         toast({ title: "Tender text too short", description: "Paste the tender text manually below.", variant: "destructive" });
         setIsAnalyzing(false);
         return;
       }
-      const result = await analyzeTender(pdfText, company, selectedTender || pdfFile?.name || "Untitled Tender", user.id);
-      setTenderId(result.tenderId);
+      const title = selectedTender || pdfFile?.name || "Untitled Tender";
+      const newTenderId = await startTenderAnalysis(pdfText, company, title, user.id);
+      setTenderId(newTenderId);
+      saveJob({ stage: "analyzing", tenderId: newTenderId, title, showDashboard: true });
+      toast({ title: "Analysis started", description: "Running in background — safe to navigate away." });
+      const result = await pollTenderAnalysis(newTenderId);
       setRequirements(result.requirements);
       if (result.eligibility) setEligibility(result.eligibility);
       if (!selectedTender && result.requirements.summary) {
         setSelectedTender(result.requirements.summary.substring(0, 80));
       }
+      saveJob({ stage: "analyzed", tenderId: newTenderId, title, showDashboard: true });
       refreshQuota();
       toast({ title: "Tender analyzed successfully!" });
     } catch (err: any) {
@@ -199,16 +280,15 @@ const Index = () => {
     }
     setIsGenerating(true);
     try {
-      const proposal = await generateProposal(
-        tenderId || "",
-        selectedTender || "Untitled Tender",
-        requirements,
-        eligibility,
-        company,
-        user.id,
-      );
+      const title = selectedTender || "Untitled Tender";
+      const newProposalId = await startProposal(tenderId || "", title, requirements, eligibility, company, user.id);
+      setProposalId(newProposalId);
+      saveJob({ stage: "generating", tenderId, proposalId: newProposalId, title, showDashboard: true });
+      toast({ title: "Proposal generation started", description: "Running in background." });
+      const proposal = await pollProposal(newProposalId);
       setProposalText(proposal);
       setProposalReady(true);
+      clearJob();
       refreshQuota();
       toast({ title: "Proposal generated!" });
     } catch (err: any) {
@@ -232,13 +312,16 @@ const Index = () => {
   const handleReset = () => {
     setExcelFile(null);
     setPdfFile(null);
+    setSupportingFiles([]);
     setTenderTitles([]);
     setSelectedTender("");
     setRequirements(null);
     setTenderId(null);
     setEligibility(null);
+    setProposalId(null);
     setProposalText("");
     setProposalReady(false);
+    clearJob();
   };
 
   return (
@@ -346,6 +429,8 @@ const Index = () => {
                     onPasteText={(t) => { setPastedTenderText(t); toast({ title: "Tender text saved", description: "Click Process to analyze." }); }}
                     excelFile={excelFile}
                     pdfFile={pdfFile}
+                    supportingFiles={supportingFiles}
+                    onSupportingFilesChange={setSupportingFiles}
                   />
 
                   {/* Tender selector */}

@@ -51,12 +51,12 @@ function currentOrgId(): string | null {
   try { return localStorage.getItem("cuvoto_current_org"); } catch { return null; }
 }
 
-export async function analyzeTender(
+export async function startTenderAnalysis(
   pdfText: string,
   companyProfile: CompanyData,
   tenderTitle: string,
   userId: string,
-): Promise<AnalyzeResult> {
+): Promise<string> {
   const orgId = currentOrgId();
   if (!orgId) throw new Error("No active workspace selected");
 
@@ -83,14 +83,21 @@ export async function analyzeTender(
     throw new Error(message);
   }
   if (data?.error) throw new Error(data.error);
+  return tender.id;
+}
 
-  for (let attempt = 0; attempt < 90; attempt++) {
+export async function pollTenderAnalysis(
+  tenderId: string,
+  opts: { signal?: AbortSignal; maxAttempts?: number } = {},
+): Promise<AnalyzeResult> {
+  const max = opts.maxAttempts ?? 180;
+  for (let attempt = 0; attempt < max; attempt++) {
+    if (opts.signal?.aborted) throw new Error("Polling aborted");
     const { data: row, error: pollError } = await supabase
       .from("tenders")
       .select("id, raw_requirements, eligibility")
-      .eq("id", tender.id)
+      .eq("id", tenderId)
       .single();
-
     if (pollError) throw new Error(pollError.message);
 
     const requirements = row?.raw_requirements as any;
@@ -101,22 +108,25 @@ export async function analyzeTender(
     if (reqJob?.status === "failed" || eligJob?.status === "failed") {
       throw new Error(reqJob?.error || eligJob?.error || "Tender analysis failed");
     }
-
     if (requirements && !reqJob && eligibility && !eligJob) {
-      return {
-        tenderId: row.id,
-        requirements,
-        eligibility,
-      } as AnalyzeResult;
+      return { tenderId: row.id, requirements, eligibility } as AnalyzeResult;
     }
-
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
-
   throw new Error("Tender analysis is taking longer than expected. Please try again.");
 }
 
-export async function generateProposal(
+export async function analyzeTender(
+  pdfText: string,
+  companyProfile: CompanyData,
+  tenderTitle: string,
+  userId: string,
+): Promise<AnalyzeResult> {
+  const tenderId = await startTenderAnalysis(pdfText, companyProfile, tenderTitle, userId);
+  return pollTenderAnalysis(tenderId);
+}
+
+export async function startProposal(
   tenderId: string,
   tenderTitle: string,
   requirements: TenderRequirements,
@@ -151,29 +161,43 @@ export async function generateProposal(
     throw new Error(message);
   }
   if (data?.error) throw new Error(data.error);
+  return proposal.id;
+}
 
-  for (let attempt = 0; attempt < 120; attempt++) {
+export async function pollProposal(
+  proposalId: string,
+  opts: { signal?: AbortSignal; maxAttempts?: number } = {},
+): Promise<string> {
+  const max = opts.maxAttempts ?? 240;
+  for (let attempt = 0; attempt < max; attempt++) {
+    if (opts.signal?.aborted) throw new Error("Polling aborted");
     const { data: row, error: pollError } = await supabase
       .from("proposals")
       .select("content, metadata")
-      .eq("id", proposal.id)
+      .eq("id", proposalId)
       .single();
-
     if (pollError) throw new Error(pollError.message);
 
     const job = (row?.metadata as any)?._job;
     if (job?.status === "failed") {
       throw new Error(job.error || "Proposal generation failed");
     }
-
-    if (row?.content && !job) {
-      return row.content;
-    }
-
+    if (row?.content && !job) return row.content;
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
-
   throw new Error("Proposal generation is taking longer than expected. Please try again.");
+}
+
+export async function generateProposal(
+  tenderId: string,
+  tenderTitle: string,
+  requirements: TenderRequirements,
+  eligibility: any,
+  companyProfile: CompanyData,
+  userId: string,
+): Promise<string> {
+  const proposalId = await startProposal(tenderId, tenderTitle, requirements, eligibility, companyProfile, userId);
+  return pollProposal(proposalId);
 }
 
 export async function extractTextFromPdf(file: File): Promise<string> {

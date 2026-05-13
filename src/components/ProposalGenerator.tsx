@@ -3,6 +3,7 @@ import { FileOutput, Loader2, FileText, Copy, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { exportDocumentToPdf } from "@/lib/pdf-export";
 
 interface ProposalGeneratorProps {
   tenderTitle: string;
@@ -22,13 +23,7 @@ const ProposalGenerator = ({ tenderTitle, onGenerate, isGenerating, proposalRead
   };
 
   const handleDownload = () => {
-    const blob = new Blob([proposalText], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `proposal-${tenderTitle.substring(0, 30).replace(/\s+/g, "-").toLowerCase()}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
+    exportDocumentToPdf(`Proposal — ${tenderTitle}`, proposalText);
   };
 
   return (
