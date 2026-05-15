@@ -155,9 +155,8 @@ function jobState(status: "processing" | "failed", extra: Record<string, unknown
 }
 
 async function fetchWithFallback(payload: any) {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
   let res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
