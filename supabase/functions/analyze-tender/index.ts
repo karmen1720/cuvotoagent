@@ -165,14 +165,20 @@ async function fetchWithFallback(payload: any) {
     body: JSON.stringify(payload),
   });
 
-  if (!res.ok && (res.status === 402 || res.status === 429) && GEMINI_API_KEY) {
-    console.log(`Lovable API returned ${res.status}, falling back to free Gemini API`);
-    res = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${GEMINI_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ ...payload, model: "gemini-2.5-flash" }),
-    });
-  }
+  if (!res.ok && (res.status === 402 || res.status === 429)) {
+      if (GEMINI_API_KEY) {
+        console.log(`Lovable API returned ${res.status}, GEMINI_API_KEY present: ${!!GEMINI_API_KEY}. Falling back to Gemini.`);
+        res = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${GEMINI_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, model: "gemini-2.5-flash" }),
+        });
+      } else {
+        console.warn('GEMINI_API_KEY not configured; cannot fallback.');
+        // propagate original error response
+        return res;
+      }
+    }
 
   return res;
 }
