@@ -403,13 +403,20 @@ serve(async (req) => {
 
     const { data: quotaData } = await admin.rpc("org_ai_quota_remaining", { _org_id: orgId });
     const quota = quotaData as any;
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!quota?.allowed) {
-      const reason = quota?.reason === "trial_expired"
-        ? "Your trial has expired. Upgrade to continue using AI."
-        : `Monthly AI quota reached (${quota?.used}/${quota?.limit}). Upgrade your plan to continue.`;
-      return new Response(JSON.stringify({ error: reason, quota }), {
-        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (GEMINI_API_KEY) {
+        console.warn(`Quota exceeded for Lovable, but GEMINI_API_KEY is present. Continuing with Gemini fallback.`);
+        // Continue; fetchWithFallback will handle fallback.
+      } else {
+        const reason = quota?.reason === "trial_expired"
+          ? "Your trial has expired. Upgrade to continue using AI."
+          : `Monthly AI quota reached (${quota?.used}/${quota?.limit}). Upgrade your plan to continue.`;
+        return new Response(JSON.stringify({ error: reason, quota }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const startedAt = new Date().toISOString();

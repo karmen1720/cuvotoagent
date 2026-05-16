@@ -155,7 +155,7 @@ function jobState(status: "processing" | "failed", extra: Record<string, unknown
 }
 
 async function fetchWithFallback(payload: any) {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -389,15 +389,24 @@ serve(async (req) => {
       });
     }
 
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    console.log("GEMINI_API_KEY present:", !!GEMINI_API_KEY);
+    // Fetch quota information from Supabase
     const { data: quotaData } = await admin.rpc("org_ai_quota_remaining", { _org_id: orgId });
     const quota = quotaData as any;
     if (!quota?.allowed) {
-      const reason = quota?.reason === "trial_expired"
-        ? "Your trial has expired. Upgrade to continue using AI."
-        : `Monthly AI quota reached (${quota?.used}/${quota?.limit}). Upgrade your plan to continue.`;
-      return new Response(JSON.stringify({ error: reason, quota }), {
-        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (GEMINI_API_KEY) {
+        console.warn(`Quota exceeded for Lovable, but GEMINI_API_KEY is present. Continuing with Gemini fallback.`);
+        // Continue; fetchWithFallback will handle fallback.
+      } else {
+        const reason = quota?.reason === "trial_expired"
+          ? "Your trial has expired. Upgrade to continue using AI."
+          : `Monthly AI quota reached (${quota?.used}/${quota?.limit}). Upgrade your plan to continue.`;
+        return new Response(JSON.stringify({ error: reason, quota }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const startedAt = new Date().toISOString();
